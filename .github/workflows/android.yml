@@ -2,6 +2,12 @@ name: Android APK
 on:
   push:
     branches: [main]
+    paths:
+      - "app/**"
+      - "tests/**"
+      - "build.gradle"
+      - "settings.gradle"
+      - "gradle.properties"
   workflow_dispatch:
 permissions:
   contents: read
@@ -79,3 +85,27 @@ jobs:
           path: |
             app/build/reports/androidTests/
             device-evidence/
+
+  publish-test:
+    needs: [build, device-test]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: NoteNote-Android-APK
+          path: dist
+      - name: Publish downloadable test APK
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          cat > release-notes.md <<'NOTES'
+          Android 个人测试版。下载下方 APK，在 Android 8.0 及以上设备安装。
+
+          首次可离线记录；真实 AI 需在应用内配置自己的模型接口和 API Key。联网检索另需 Tavily Key。
+
+          此版本通过编译、Lint、单元测试与 Android 模拟器测试。后台执行受安卓省电策略影响。测试签名可能随构建变化，如覆盖安装冲突，请先导出旧版记录再卸载安装。
+          NOTES
+          gh release create "test-${GITHUB_RUN_NUMBER}" dist/NoteNote-0.1.0-test.apk dist/SHA256SUMS.txt --target "$GITHUB_SHA" --title "Note Note 0.1.0 · Test ${GITHUB_RUN_NUMBER}" --prerelease --notes-file release-notes.md

@@ -1,0 +1,49 @@
+name: Publish tested APK
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/publish-tested.yml']
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: Successful Android APK workflow run ID
+        required: true
+        default: '34119925870'
+permissions:
+  contents: write
+  actions: read
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Validate completed build and download its APK
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          BUILD_RUN_ID: ${{ inputs.run_id || '34119925870' }}
+        run: |
+          gh api "repos/$GH_REPO/actions/runs/$BUILD_RUN_ID" > run.json
+          jq -e '.name == "Android APK" and .conclusion == "success" and .head_branch == "main"' run.json
+          echo "TESTED_SHA=$(jq -r '.head_sha' run.json)" >> "$GITHUB_ENV"
+          echo "TESTED_NUMBER=$(jq -r '.run_number' run.json)" >> "$GITHUB_ENV"
+          gh run download "$BUILD_RUN_ID" --name NoteNote-Android-APK --dir dist
+          cd dist
+          sed 's@dist/@@g' SHA256SUMS.txt | sha256sum --check
+      - name: Publish the verified binary
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          cat > notes.md <<'NOTES'
+          Android 个人测试版。下载 Assets 下的 APK，在 Android 8.0 及以上设备安装。
+
+          编译、Lint、单元测试与 Android 10 模拟器测试已通过。首次打开即可离线记录；真实 AI 需在设置中填写自己的模型地址、模型 ID 和 API Key。联网检索可另配 Tavily Key。
+
+          后台回顾由手机执行，受省电策略影响。此包采用开发测试签名；不同构建若签名冲突，需先导出记录再卸载安装。
+          NOTES
+          if gh release view "test-$TESTED_NUMBER" >/dev/null 2>&1; then
+            echo "Verified build is already published."
+          else
+            gh release create "test-$TESTED_NUMBER" dist/NoteNote-0.1.0-test.apk dist/SHA256SUMS.txt --target "$TESTED_SHA" --title "Note Note 0.1.0 · Test $TESTED_NUMBER" --prerelease --notes-file notes.md
+          fi

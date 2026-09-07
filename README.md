@@ -6,8 +6,8 @@ Android 个人测试版。原文保存在本机，支持配置自己的模型接
 
 ## 下载与安装
 
-1. 打开本仓库 **Actions → Android APK**，选择最新成功的运行。
-2. 下载 **NoteNote-Android-APK**，解压得到 `NoteNote-0.1.0-test.apk`。
+1. 打开本仓库 **Releases**，选择最新的测试版本。
+2. 在 Assets 中直接下载 `NoteNote-0.1.0-test.apk`。
 3. 将 APK 放到 Android 8.0 及以上设备打开，按系统提示允许当前来源安装。测试版无需上架商店。
 4. 首次打开可直接记录。在「设置」连接自己的模型服务；需要推送时允许通知。
 
