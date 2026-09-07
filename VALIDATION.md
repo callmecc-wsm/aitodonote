@@ -18,3 +18,5 @@
 **尚未验证**：真实模型与 Tavily 请求需使用有效 API Key 在用户设备连接；各手机厂商的后台省电策略需真机观察。当前云端环境无法读取下载出的模拟器截图，因此没有声称完成截图视觉验收；首页渲染通过实际 WebView 文本断言验证。
 
 构建产物来自上述通过测试的提交。后续只改文档和下载流程时，直接使用同一份已验证 APK，不重新编译或更换签名。
+
+**交付入口**：上述成功构建中的 `NoteNote-Android-APK` 附件。曾尝试创建 Release，GitHub 返回 `Resource not accessible by integration`，因此没有创建 Release；失败的发布流程已移除。

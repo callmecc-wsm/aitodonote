@@ -6,12 +6,14 @@ Android 个人测试版。原文保存在本机，支持配置自己的模型接
 
 ## 下载与安装
 
-1. 打开本仓库 **Releases**，选择最新的测试版本。
-2. 在 Assets 中直接下载 `NoteNote-0.1.0-test.apk`。
+1. 打开 [已验证的 Android 构建](https://github.com/callmecc-wsm/aitodonote/actions/runs/34119925870)。
+2. 在页面下方 Artifacts 下载 **NoteNote-Android-APK**，解压得到 `NoteNote-0.1.0-test.apk`。
 3. 将 APK 放到 Android 8.0 及以上设备打开，按系统提示允许当前来源安装。测试版无需上架商店。
 4. 首次打开可直接记录。在「设置」连接自己的模型服务；需要推送时允许通知。
 
 当前由 CI 生成临时开发签名。不同构建的签名可能不同；如覆盖安装提示签名冲突，先在旧版导出记录，再卸载旧版、安装新版并导入。私钥不保存在仓库内。
+
+安装包需要登录 GitHub 下载。该附件有效至 2026-12-06；之后可在 Actions 手动重新构建。Release 发布因当前集成权限被 GitHub 拒绝，暂使用上述已验证附件。
 
 ## 文档
 
