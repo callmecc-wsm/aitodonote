@@ -1,6 +1,6 @@
 (function(root) {
   'use strict';
-  const escape = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const escape = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const classify = (text, kind='auto') => {
     if (['think','action','note'].includes(kind)) return kind;
     if (/为什么|怎么|如何|研究|分析|思考|纠结|情绪|不理解|搞懂|不知道|调研/.test(text)) return 'think';
