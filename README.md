@@ -13,7 +13,7 @@
 
 ## 下载与安装
 
-新版正在进行 Android 10 和 Android 15 设备验收。通过后这里会提供对应安装包，历史验证见 [VALIDATION.md](VALIDATION.md)。
+新版正在进行 Android 8、Android 10 和 Android 15 设备验收。通过后这里会提供对应安装包，历史验证见 [VALIDATION.md](VALIDATION.md)。
 
 需要 Android 8.0 及以上。解压附件中的 APK，在手机上打开，按系统提示允许当前来源安装即可。无需上架商店。
 
@@ -45,7 +45,7 @@ gradle :app:assembleDebug :app:testDebugUnitTest :app:lintDebug
 gradle :app:connectedDebugAndroidTest
 ```
 
-APK 输出到 `app/build/outputs/apk/debug/app-debug.apk`。GitHub Actions 自动完成构建、Lint、签名检查，并在 API 29、API 35 模拟器执行设备测试。
+APK 输出到 `app/build/outputs/apk/debug/app-debug.apk`。GitHub Actions 自动完成构建、Lint、签名检查，并在 API 26、API 29、API 35 模拟器执行设备测试。
 
 界面资源在 `app/src/main/assets/`。网页适配器只预览本地界面，不模拟 AI 成果或系统通知。
 

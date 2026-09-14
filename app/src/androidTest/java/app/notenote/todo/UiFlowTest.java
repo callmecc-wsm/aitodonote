@@ -58,6 +58,8 @@ public class UiFlowTest extends DeviceTestBase {
         try(ActivityScenario<MainActivity> scenario=ActivityScenario.launch(MainActivity.class)) {
             WebView w=ready(scenario);
             js(w,"document.querySelector('.card').click();true");
+            assertEquals("Backdrop must cover the visible WebView","true",js(w,"(function(){var r=document.querySelector('.modal-backdrop').getBoundingClientRect();return Math.abs(r.top)<2&&Math.abs(r.left)<2&&Math.abs(r.width-innerWidth)<2&&Math.abs(r.height-innerHeight)<2;})()"));
+            assertEquals("Detail sheet must fit the visible viewport","true",js(w,"(function(){var r=document.querySelector('.modal').getBoundingClientRect();return r.height>100&&r.top>=0&&r.bottom<=innerHeight+1;})()"));
             assertEquals("Original markup must remain literal text","true",js(w,"document.querySelector('.detail-text').textContent.startsWith('<img')"));
             assertEquals("0",js(w,"document.querySelector('.detail-text').querySelectorAll('img').length"));
             assertEquals("false",js(w,"Boolean(window.injected)"));

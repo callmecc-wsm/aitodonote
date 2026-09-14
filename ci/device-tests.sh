@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 set -uo pipefail
+mkdir -p device-evidence
+adb shell dumpsys webviewupdate > device-evidence/webview.txt
+cat device-evidence/webview.txt
 test_status=0
 gradle --no-daemon :app:connectedDebugAndroidTest || test_status=$?
 python3 ci/test_report.py app/build/outputs/androidTest-results/connected

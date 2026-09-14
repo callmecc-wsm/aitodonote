@@ -9,7 +9,7 @@ const draft={text:'',due:'',searchAllowed:true};
 let draftLoaded=false;
 function persistDraft(){call('draft',{...draft,kind:composeKind});}
 // The browser adapter is an explicit local preview. It never calls a model or mimics AI output.
-const preview=(()=>{let data;try{data=JSON.parse(localStorage.getItem('notenote-preview')||'null')}catch{};data=data||{tasks:[],config:{interval:6,quietFrom:22,quietTo:8,enabled:false,ready:false}};
+const preview=(()=>{let data;try{data=JSON.parse(localStorage.getItem('notenote-preview')||'null')}catch(ignored){};data=data||{tasks:[],config:{interval:6,quietFrom:22,quietTo:8,enabled:false,ready:false}};
   const persist=()=>localStorage.setItem('notenote-preview',JSON.stringify(data));
   const find=id=>data.tasks.find(t=>t.id===id);
   return (method,p)=>{
