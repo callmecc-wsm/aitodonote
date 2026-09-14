@@ -13,7 +13,13 @@
 
 ## 下载与安装
 
-新版正在进行 Android 8、Android 10 和 Android 15 设备验收。通过后这里会提供对应安装包，历史验证见 [VALIDATION.md](VALIDATION.md)。
+1. 登录 GitHub，下载 [NoteNote-Android-APK 测试包](https://github.com/callmecc-wsm/aitodonote/actions/runs/34857149768/artifacts/10352809162)（约 2.4 MB）。
+2. 解压得到 `NoteNote-0.2.0-test.apk` 和 `SHA256SUMS.txt`。
+3. 在手机上打开 APK 安装。首次打开即可试用记录与本地提醒。
+
+[完整构建与三版安卓测试记录](https://github.com/callmecc-wsm/aitodonote/actions/runs/34857149768) · [验证详情](VALIDATION.md)
+
+附件保留至 2026-12-13。到期后可在 Actions 手动重新构建。
 
 需要 Android 8.0 及以上。解压附件中的 APK，在手机上打开，按系统提示允许当前来源安装即可。无需上架商店。
 
