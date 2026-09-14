@@ -7,13 +7,13 @@ const $=s=>document.querySelector(s);
 let state={tasks:[],config:{interval:6,quietFrom:22,quietTo:8}},tab='inbox',filter='all',search='',composeKind='auto',dialog=null,lastSignature='',toastTimer;
 const draft={text:'',due:'',searchAllowed:true};
 let draftLoaded=false;
-function persistDraft(){call('draft',{...draft,kind:composeKind});}
+function persistDraft(){call('draft',Object.assign({},draft,{kind:composeKind}));}
 // The browser adapter is an explicit local preview. It never calls a model or mimics AI output.
 const preview=(()=>{let data;try{data=JSON.parse(localStorage.getItem('notenote-preview')||'null')}catch(ignored){};data=data||{tasks:[],config:{interval:6,quietFrom:22,quietTo:8,enabled:false,ready:false}};
   const persist=()=>localStorage.setItem('notenote-preview',JSON.stringify(data));
   const find=id=>data.tasks.find(t=>t.id===id);
   return (method,p)=>{
-    if(method==='snapshot') return {...data,native:false,notifications:false,busy:false,activeId:''};
+    if(method==='snapshot') return Object.assign({},data,{native:false,notifications:false,busy:false,activeId:''});
     if(method==='draft'){data.draft=p;persist();return {};}
     if(method==='read'){const t=find(p.id);if(t)t.unread=false;persist();return {};}
     if(method==='save') {let t=find(p.id);const n=Date.now();if(!p.text.trim())throw Error('先写下一句话');if(!t){t={id:crypto.randomUUID(),events:[],created:n,done:false,snooze:0,lastReminder:0};data.tasks.unshift(t)}Object.assign(t,{text:p.text.trim(),kind:classify(p.text,p.kind),updated:n,revision:(t.revision||0)+1,lastReview:0,error:'',due:p.due||0,searchAllowed:p.searchAllowed!==false,nextReview:0,needsUser:false,rounds:0});if(t.kind==='action'&&!t.due)t.due=n+86400000;persist();return {task:t};}
