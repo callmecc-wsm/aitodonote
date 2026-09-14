@@ -38,11 +38,20 @@ public class WorkerTest extends DeviceTestBase {
         assertEquals(ListenableWorker.Result.success(),worker(Data.EMPTY).doWork());
         assertEquals(123,config.prefs.getLong("lastRun",0)); assertFalse(ReviewWorker.busy());
     }
-    @Test public void separateManualNotesKeepSeparateQueuedRequests() throws Exception {
+    @Test public void repeatedStartupFailureEventuallyPausesInsteadOfRetryingForever() throws Exception {
+        config.prefs.edit().putString("baseUrl","https://example.com/v1").putString("model","test")
+            .putString("apiKey","broken-ciphertext").putBoolean("enabled",true).putInt("quietFrom",0).putInt("quietTo",0).commit();
+        ReviewWorker retry=TestWorkerBuilder.from(context,ReviewWorker.class,(java.util.concurrent.Executor)Runnable::run)
+            .setRunAttemptCount(2).build();
+        assertEquals(ListenableWorker.Result.failure(),retry.doWork());
+        assertFalse(config.prefs.getString("blocked","").isEmpty());
+        assertFalse(ReviewWorker.busy());
+    }
+    @Test public void separateNotesAndFollowupRequestsAreNotLost() throws Exception {
         String a=note("问题 A","think").getString("id"),b=note("问题 B","think").getString("id");
         ReviewWorker.now(context,a); ReviewWorker.now(context,b); ReviewWorker.now(context,a);
         WorkManager manager=WorkManager.getInstance(context);
-        assertEquals(1,manager.getWorkInfosForUniqueWork("note-review-manual-"+a).get().size());
+        assertEquals(2,manager.getWorkInfosForUniqueWork("note-review-manual-"+a).get().size());
         assertEquals(1,manager.getWorkInfosForUniqueWork("note-review-manual-"+b).get().size());
     }
 }

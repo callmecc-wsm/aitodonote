@@ -4,6 +4,7 @@ on:
     branches: [main]
     paths:
       - ".github/workflows/android.yml"
+      - "ci/**"
       - "app/**"
       - "tests/**"
       - "build.gradle"
@@ -33,13 +34,16 @@ jobs:
           node --check app/src/main/assets/app.js
           node --test tests/core.test.cjs
       - name: Compile, lint and test
-        run: gradle --no-daemon :app:assembleDebug :app:testDebugUnitTest :app:lintDebug
+        run: |
+          gradle --no-daemon :app:assembleDebug :app:testDebugUnitTest :app:lintDebug
+          python3 ci/test_report.py app/build/test-results
       - name: Verify APK signature
         run: |
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs app/build/outputs/apk/debug/app-debug.apk
           mkdir -p dist
           cp app/build/outputs/apk/debug/app-debug.apk dist/NoteNote-0.2.0-test.apk
           sha256sum dist/*.apk > dist/SHA256SUMS.txt
+          cat dist/SHA256SUMS.txt
       - uses: actions/upload-artifact@v4
         with:
           name: NoteNote-Android-APK
@@ -79,16 +83,12 @@ jobs:
           arch: x86_64
           profile: pixel_3
           disable-animations: true
-          script: |
-            gradle --no-daemon :app:connectedDebugAndroidTest
-            adb shell am start -n app.notenote.todo.test/app.notenote.todo.MainActivity
-            sleep 3
-            mkdir -p device-evidence
-            adb exec-out screencap -p > device-evidence/android-home.png
+          script: bash ci/device-tests.sh
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: Android-device-evidence-API-${{ matrix.api }}
           path: |
             app/build/reports/androidTests/
+            app/build/outputs/androidTest-results/connected/
             device-evidence/

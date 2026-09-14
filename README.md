@@ -1,43 +1,58 @@
 # Note Note and ToDo
 
-随手记下来。AI 定期推进值得思考的问题，到时间提醒需要自己行动的事项。
+先记下来。AI 定期推进值得思考的问题，需要自己行动的事情到时间提醒。
 
-Android 个人测试版。原文保存在本机，支持配置自己的模型接口，可选联网检索。
+简约的 Android 个人测试应用。记录离线可用，无需注册；AI 使用你自己的模型 API，联网检索可选。
+
+## v0.2.0
+
+- **有节制地继续研究**：有明确后续问题时，至少隔一天再推进，连续最多 3 轮；需要你的背景信息时停下来等你。
+- **通知里就能处理**：打开对应记录、标记完成、明天提醒。通知关闭或处于安静时段时保留待发进展，恢复后补发。
+- **少丢东西**：新记录草稿自动保存，编辑时防止旧 AI 结果写回，导入遇到坏数据整批回滚。
+- **掌握推进情况**：未读进展、下轮时间、回顾历史、失败原因；单条记录可关闭联网搜索。
 
 ## 下载与安装
 
-1. 打开 [已验证的 Android 构建](https://github.com/callmecc-wsm/aitodonote/actions/runs/34119925870)。
-2. 在页面下方 Artifacts 下载 **NoteNote-Android-APK**，解压得到 `NoteNote-0.1.0-test.apk`。
-3. 将 APK 放到 Android 8.0 及以上设备打开，按系统提示允许当前来源安装。测试版无需上架商店。
-4. 首次打开可直接记录。在「设置」连接自己的模型服务；需要推送时允许通知。
+新版正在进行 Android 10 和 Android 15 设备验收。通过后这里会提供对应安装包，历史验证见 [VALIDATION.md](VALIDATION.md)。
 
-当前由 CI 生成临时开发签名。不同构建的签名可能不同；如覆盖安装提示签名冲突，先在旧版导出记录，再卸载旧版、安装新版并导入。私钥不保存在仓库内。
+需要 Android 8.0 及以上。解压附件中的 APK，在手机上打开，按系统提示允许当前来源安装即可。无需上架商店。
 
-安装包需要登录 GitHub 下载。该附件有效至 2026-12-06；之后可在 Actions 手动重新构建。Release 发布因当前集成权限被 GitHub 拒绝，暂使用上述已验证附件。
+当前采用 CI 临时开发签名。装过旧版时请先导出备份；如覆盖安装提示签名冲突，需要卸载旧版、安装新版并导入。卸载会删除本机数据和密钥，密钥需重新填写。私钥不保存在仓库。
+
+## 开始使用
+
+1. 在收件箱写下一句话，选择「待思考」「待行动」或「仅记录」，也可以先自动分类。
+2. 在设置填写 HTTPS Chat Completions 兼容服务地址、模型名称、API Key，点「保存并测试连接」。
+3. 开启定期回顾，选择频率与安静时段；允许系统通知。也可以随时手动推进。
+4. 想查真实来源时开启 Tavily 并填写搜索 Key。个人背景较多的记录可以单独取消联网搜索；待思考原文仍会发给你配置的模型。
+5. 收到进展后打开原记录接着聊。线下事项由你执行，AI 不会自行标记完成。
 
 ## 文档
 
 - [Note Note and ToDo 产品 Wiki](wiki/Note-Note-and-ToDo.md)
-- [构建与验证状态](VALIDATION.md)
+- [构建与测试证据](VALIDATION.md)
 - [开发测试签名说明](ci/README.md)
 
-`wiki/` 保存可版本管理的 Wiki 源文档。GitHub 独立 Wiki 需要先在网页创建首页；未初始化时仍可直接阅读上面的产品文档。
+产品 Wiki 以仓库内可版本管理的文档交付。GitHub 独立 Wiki 尚未初始化。
 
-## 构建
+## 开发与测试
 
-使用 JDK 17、Gradle 8.11.1、Android SDK 35 与 Build Tools 35.0.0。在 Android Studio 打开根目录，或运行：
+JDK 17、Gradle 8.11.1、Android SDK / Build Tools 35。
 
 ```sh
+node --test tests/core.test.cjs
 gradle :app:assembleDebug :app:testDebugUnitTest :app:lintDebug
+gradle :app:connectedDebugAndroidTest
 ```
 
-APK：`app/build/outputs/apk/debug/app-debug.apk`。CI 会完成编译、单元测试、Lint、签名验证，并在 Android 模拟器测试持久化和启动。
+APK 输出到 `app/build/outputs/apk/debug/app-debug.apk`。GitHub Actions 自动完成构建、Lint、签名检查，并在 API 29、API 35 模拟器执行设备测试。
 
-界面资源：`app/src/main/assets/`。浏览器可预览本地交互；不会模拟 AI 成果，也不会发通知。
+界面资源在 `app/src/main/assets/`。网页适配器只预览本地界面，不模拟 AI 成果或系统通知。
 
 ## 当前边界
 
-- 真实 AI 需要用户自己的 HTTPS Chat Completions 兼容接口与 API Key。
-- 联网检索需要另配 Tavily Key；没有配置时结果明确标注未联网。
-- 回顾由手机 WorkManager 执行，系统省电和强制停止会影响执行时间；当前没有云端执行服务。
-- AI 只追加进展，完成状态由本人确认；不自动发消息、购买或执行现实事务。
+- 模型与搜索费用由你的 API 账户承担；没有内置共享 Key。
+- 连接失败会暂停自动推进，避免持续请求；检查配置后可手动恢复。
+- 手机负责后台执行。系统省电、断网、关机和强制停止会影响时间，目前没有云端代跑服务，也不是精确闹钟。
+- AI 只追加建议和研究进展，不自动发消息、购买或执行现实事务。
+- 草稿恢复覆盖收件箱的新记录；正在编辑原文或输入补充时，请提交保存后再退出。

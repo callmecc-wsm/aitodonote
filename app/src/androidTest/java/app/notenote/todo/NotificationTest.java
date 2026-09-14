@@ -33,6 +33,15 @@ public class NotificationTest extends DeviceTestBase {
         store.notificationSent(id,first.getString("id"));
         assertEquals(second.getString("id"),store.find(id).getString("pendingNotification"));
     }
+    @Test public void readingAnOlderSnapshotCannotHideANewerAnswer() throws Exception {
+        JSONObject t=note("问题","think"); String id=t.getString("id");
+        JSONObject first=event("enough",""); store.result(id,t.getInt("revision"),first,"");
+        JSONObject second=event("enough",""); store.result(id,t.getInt("revision"),second,"");
+        assertFalse(store.markRead(id,first.getString("id")));
+        assertTrue(store.find(id).getBoolean("unread"));
+        assertTrue(store.markRead(id,second.getString("id")));
+        assertFalse(store.find(id).getBoolean("unread"));
+    }
     @Test public void completedAndReadProgressAreNotPushed() throws Exception {
         JSONObject a=note("问题一","think"),b=note("问题二","think");
         store.result(a.getString("id"),a.getInt("revision"),event("enough",""),"");
@@ -68,7 +77,11 @@ public class NotificationTest extends DeviceTestBase {
         assertTrue(Notifications.send(context,first,false)); assertTrue(Notifications.send(context,second,false));
         NotificationManager manager=context.getSystemService(NotificationManager.class);
         android.service.notification.StatusBarNotification[] active=manager.getActiveNotifications();
-        assertEquals(2,active.length);
+        long postedDeadline=android.os.SystemClock.elapsedRealtime()+5000;
+        while(active.length!=2&&android.os.SystemClock.elapsedRealtime()<postedDeadline) {
+            android.os.SystemClock.sleep(50); active=manager.getActiveNotifications();
+        }
+        assertEquals("Both notifications must reach the asynchronous system service",2,active.length);
         for(android.service.notification.StatusBarNotification entry:active) {
             Notification n=entry.getNotification();
             assertEquals(2,n.actions.length); assertNotNull(n.contentIntent);

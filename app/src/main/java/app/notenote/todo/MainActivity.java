@@ -112,12 +112,17 @@ public final class MainActivity extends Activity {
                         focusId=""; sharedText=""; notice=""; break;
                     case "save": result.put("task",store.save(p)); Notifications.cancel(MainActivity.this,p.optString("id")); break;
                     case "draft": drafts.save(p); break;
-                    case "read": store.markRead(p.getString("id")); Notifications.cancel(MainActivity.this,p.getString("id")); break;
+                    case "read": if(store.markRead(p.getString("id"),p.optString("eventId"))) Notifications.cancel(MainActivity.this,p.getString("id")); break;
                     case "change": store.change(p.getString("id"),p.getString("action"),p.optString("content")); Notifications.cancel(MainActivity.this,p.getString("id")); break;
                     case "delete": store.delete(p.getString("id")); Notifications.cancel(MainActivity.this,p.getString("id")); break;
                     case "settings": if(config.save(p)) store.clearErrors(); ReviewWorker.schedule(MainActivity.this); break;
                     case "review":
                         if(!config.ready()) throw new IllegalArgumentException("先在设置中连接模型");
+                        if(!p.optString("id").isEmpty()) {
+                            if(ReviewWorker.busy()&&ReviewWorker.activeId.equals(p.getString("id")))
+                                throw new IllegalStateException("这条记录正在推进，请稍等");
+                            store.change(p.getString("id"),"retry","");
+                        }
                         ReviewWorker.now(MainActivity.this,p.optString("id")); break;
                     case "test":
                         if(!config.ready()) throw new IllegalArgumentException("请先保存模型设置");

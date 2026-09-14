@@ -101,8 +101,16 @@ public final class Store extends SQLiteOpenHelper {
         }
         put(t); return true;
     }
-    public synchronized void markRead(String id) throws JSONException {
-        JSONObject t=find(id); if(t!=null) { t.put("unread",false).put("pendingNotification",""); put(t); }
+    public synchronized void markRead(String id) throws JSONException { markRead(id,null); }
+    public synchronized boolean markRead(String id,String seenEventId) throws JSONException {
+        JSONObject t=find(id); if(t==null) return false;
+        JSONArray events=t.getJSONArray("events"); String newest="";
+        for(int i=events.length()-1;i>=0;i--) {
+            JSONObject e=events.getJSONObject(i);
+            if(e.optString("role").equals("assistant")) { newest=e.optString("id"); break; }
+        }
+        if(seenEventId!=null&&!seenEventId.equals(newest)) return false;
+        t.put("unread",false).put("pendingNotification",""); put(t); return true;
     }
     public synchronized void notificationSent(String id,String eventId) throws JSONException {
         JSONObject t=find(id);

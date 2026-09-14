@@ -58,10 +58,10 @@ public class UiFlowTest extends DeviceTestBase {
         try(ActivityScenario<MainActivity> scenario=ActivityScenario.launch(MainActivity.class)) {
             WebView w=ready(scenario);
             js(w,"document.querySelector('.card').click();true");
-            assertTrue(js(w,"document.querySelector('.detail-text').textContent").contains("<img"));
+            assertEquals("Original markup must remain literal text","true",js(w,"document.querySelector('.detail-text').textContent.startsWith('<img')"));
             assertEquals("0",js(w,"document.querySelector('.detail-text').querySelectorAll('img').length"));
             assertEquals("false",js(w,"Boolean(window.injected)"));
-            assertTrue(js(w,"document.body.innerText").contains("等你补充"));
+            assertTrue("Detail must explain that AI is waiting for input",js(w,"document.body.innerText").contains("等你补充"));
             assertFalse(store.find(t.getString("id")).getBoolean("unread"));
             js(w,"document.querySelector('[data-act=close]').click();document.querySelector('[data-tab=progress]').click();true");
             assertEquals("0",js(w,"document.querySelectorAll('.nav-badge').length"));

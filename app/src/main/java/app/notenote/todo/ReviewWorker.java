@@ -29,8 +29,9 @@ public final class ReviewWorker extends Worker {
             .setInputData(new Data.Builder().putBoolean("manual",true).putString("taskId",id).build())
             .setBackoffCriteria(BackoffPolicy.EXPONENTIAL,30,TimeUnit.SECONDS)
             .setConstraints(new Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build()).build();
-        // Distinct notes keep their requests; repeated taps on the same note are coalesced.
-        WorkManager.getInstance(c).enqueueUniqueWork("note-review-manual-"+id,ExistingWorkPolicy.KEEP,request);
+        // Keep follow-up requests even when the user edits a note during its current run.
+        // An unchanged completed review is ineligible, so a queued duplicate makes no model call.
+        WorkManager.getInstance(c).enqueueUniqueWork("note-review-manual-"+id,ExistingWorkPolicy.APPEND_OR_REPLACE,request);
     }
     private boolean quiet(Config c) {
         return Rules.quiet(Calendar.getInstance().get(Calendar.HOUR_OF_DAY),
@@ -67,7 +68,12 @@ public final class ReviewWorker extends Worker {
             flush(store,config);
             return Result.success();
         } catch(Exception e) {
-            config.recordRun("本轮中断，记录已保留；下次回顾将继续",null);
+            if(getRunAttemptCount()>=2) {
+                config.prefs.edit().putString("blocked","连续无法启动回顾，请重新保存模型连接设置").commit();
+                config.recordRun("回顾未能启动，自动推进已暂停；记录仍已保留",null);
+                return Result.failure();
+            }
+            config.recordRun("本轮中断，记录已保留；稍后重试",null);
             return Result.retry();
         } finally { activeId=""; BUSY.set(false); }
     }
