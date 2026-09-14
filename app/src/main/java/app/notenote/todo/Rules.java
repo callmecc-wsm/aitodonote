@@ -15,6 +15,14 @@ public final class Rules {
     public static boolean reviewEligible(String kind, boolean done, long lastReview, long snooze, long now) {
         return kind.equals("think") && !done && snooze <= now && lastReview == 0;
     }
+    public static boolean reviewEligible(String kind,boolean done,long lastReview,long snooze,long nextReview,boolean needsUser,int rounds,String error,long now) {
+        return kind.equals("think")&&!done&&snooze<=now&&error.isEmpty()&&!needsUser
+            &&(lastReview==0||(nextReview>0&&nextReview<=now&&rounds<3));
+    }
+    public static boolean safeLink(String url) {
+        try { URI u=URI.create(url); return "https".equalsIgnoreCase(u.getScheme())&&u.getHost()!=null&&u.getUserInfo()==null; }
+        catch(RuntimeException e) { return false; }
+    }
     public static boolean reminderEligible(boolean done, long due, long lastReminder, long snooze, long now) {
         return !done && due > 0 && due <= now && snooze <= now && (lastReminder == 0 || now - lastReminder >= DAY);
     }

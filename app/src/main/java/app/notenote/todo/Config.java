@@ -16,7 +16,8 @@ public final class Config {
     final SharedPreferences prefs;
     private static final String ALIAS="notenote-device-key";
     public Config(Context c) { prefs=c.getSharedPreferences("settings", Context.MODE_PRIVATE); }
-    private synchronized SecretKey key() throws Exception {
+    static final Object LOCK=new Object();
+    private static synchronized SecretKey key() throws Exception {
         KeyStore store=KeyStore.getInstance("AndroidKeyStore"); store.load(null);
         if (!store.containsAlias(ALIAS)) {
             KeyGenerator gen=KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES,"AndroidKeyStore");
@@ -47,9 +48,11 @@ public final class Config {
             .put("search",prefs.getBoolean("search",false)).put("enabled",prefs.getBoolean("enabled",false))
             .put("interval",prefs.getInt("interval",6)).put("quietFrom",prefs.getInt("quietFrom",22))
             .put("quietTo",prefs.getInt("quietTo",8)).put("lastRun",prefs.getLong("lastRun",0))
-            .put("lastStatus",prefs.getString("lastStatus","还没有回顾记录")).put("ready",ready());
+            .put("lastStatus",prefs.getString("lastStatus","还没有回顾记录")).put("ready",ready())
+            .put("blocked",prefs.getString("blocked","")).put("history",new org.json.JSONArray(prefs.getString("history","[]")));
     }
-    public synchronized void save(JSONObject input) throws Exception {
+    public boolean save(JSONObject input) throws Exception {
+        synchronized(LOCK) {
         String url=input.optString("baseUrl").trim(), model=input.optString("model").trim();
         if (!url.isEmpty()) Rules.endpoint(url);
         int interval=input.optInt("interval",6);
@@ -62,11 +65,29 @@ public final class Config {
         boolean hasSearch=!clearSearch && (!newSearch.isEmpty() || !prefs.getString("searchKey","").isEmpty());
         if(input.optBoolean("enabled") && (!hasApi||url.isEmpty()||model.isEmpty())) throw new IllegalArgumentException("先填写模型地址、模型名称和 API Key");
         if(input.optBoolean("search") && !hasSearch) throw new IllegalArgumentException("联网检索需要 Tavily API Key");
-        SharedPreferences.Editor e=prefs.edit().putString("baseUrl",url).putString("model",model)
+        boolean changed=!url.equals(prefs.getString("baseUrl",""))||!model.equals(prefs.getString("model",""))
+            ||!newApi.isEmpty()||!newSearch.isEmpty()||clear||clearSearch||input.optBoolean("search")!=prefs.getBoolean("search",false);
+        SharedPreferences.Editor e=prefs.edit().putInt("revision",prefs.getInt("revision",0)+1).putString("baseUrl",url).putString("model",model)
             .putBoolean("enabled",input.optBoolean("enabled")).putBoolean("search",input.optBoolean("search"))
             .putInt("interval",interval).putInt("quietFrom",from).putInt("quietTo",to);
         if(clear) e.remove("apiKey"); else if(!newApi.isEmpty()) e.putString("apiKey",encrypt(newApi));
         if(clearSearch) e.remove("searchKey"); else if(!newSearch.isEmpty()) e.putString("searchKey",encrypt(newSearch));
+        if(changed) e.remove("blocked");
         if(!e.commit()) throw new IllegalStateException("设置保存失败");
+        return changed;
+        }
+    }
+    public void recordRun(String text,ReviewEngine.Report report) {
+        synchronized(LOCK) {
+            long now=System.currentTimeMillis();
+            try {
+                org.json.JSONArray old=new org.json.JSONArray(prefs.getString("history","[]")), history=new org.json.JSONArray();
+                JSONObject entry=new JSONObject().put("time",now).put("status",text);
+                if(report!=null) entry.put("attempted",report.attempted).put("completed",report.completed).put("failed",report.failed).put("discarded",report.discarded);
+                history.put(entry);
+                for(int i=0;i<Math.min(old.length(),19);i++) history.put(old.get(i));
+                prefs.edit().putLong("lastRun",now).putString("lastStatus",text).putString("history",history.toString()).commit();
+            } catch(Exception ignored) { prefs.edit().putLong("lastRun",now).putString("lastStatus",text).apply(); }
+        }
     }
 }

@@ -22,6 +22,7 @@ public final class MainActivity extends Activity {
     private WebView web;
     private Store store;
     private Config config;
+    private Drafts drafts;
     private volatile String notice="";
     private volatile String focusId="";
     private volatile String sharedText="";
@@ -30,7 +31,7 @@ public final class MainActivity extends Activity {
     private final java.util.concurrent.ExecutorService io=Executors.newSingleThreadExecutor();
 
     @Override public void onCreate(Bundle saved) {
-        super.onCreate(saved); store=Store.get(this); config=new Config(this);
+        super.onCreate(saved); store=Store.get(this); config=new Config(this); drafts=new Drafts(this);
         web=new WebView(this); web.setBackgroundColor(Color.rgb(247,248,244));
         WebSettings settings=web.getSettings();
         settings.setJavaScriptEnabled(true); settings.setDomStorageEnabled(false);
@@ -64,7 +65,16 @@ public final class MainActivity extends Activity {
             } else view.setPadding(insets.getSystemWindowInsetLeft(),insets.getSystemWindowInsetTop(),insets.getSystemWindowInsetRight(),insets.getSystemWindowInsetBottom());
             return insets;
         });
-        web.loadUrl(ORIGIN+"/index.html"); readIntent(getIntent()); ReviewWorker.schedule(this);
+        if(saved==null) readIntent(getIntent());
+        web.loadUrl(ORIGIN+"/index.html"); ReviewWorker.schedule(this);
+    }
+    @Override protected void onResume() {
+        super.onResume();
+        io.execute(()->{try {
+            java.util.Calendar now=java.util.Calendar.getInstance();
+            boolean quiet=Rules.quiet(now.get(java.util.Calendar.HOUR_OF_DAY),config.prefs.getInt("quietFrom",22),config.prefs.getInt("quietTo",8));
+            Notifications.flush(store,quiet,System.currentTimeMillis(),(t,p)->Notifications.send(this,t,p));
+        } catch(Exception ignored) {}});
     }
     @Override protected void onNewIntent(Intent intent) { super.onNewIntent(intent); setIntent(intent); readIntent(intent); }
     private void readIntent(Intent intent) {
@@ -97,13 +107,15 @@ public final class MainActivity extends Activity {
                     case "snapshot":
                         result.put("tasks",store.all()).put("config",config.publicState()).put("native",true)
                             .put("busy",ReviewWorker.busy()).put("activeId",ReviewWorker.activeId).put("testing",testing)
-                            .put("notifications",((NotificationManager)getSystemService(NOTIFICATION_SERVICE)).areNotificationsEnabled())
+                            .put("notifications",Notifications.available(MainActivity.this)).put("draft",drafts.read())
                             .put("focusId",focusId).put("sharedText",sharedText).put("notice",notice);
                         focusId=""; sharedText=""; notice=""; break;
-                    case "save": result.put("task",store.save(p)); break;
-                    case "change": store.change(p.getString("id"),p.getString("action"),p.optString("content")); break;
-                    case "delete": store.delete(p.getString("id")); break;
-                    case "settings": config.save(p); store.clearErrors(); ReviewWorker.schedule(MainActivity.this); break;
+                    case "save": result.put("task",store.save(p)); Notifications.cancel(MainActivity.this,p.optString("id")); break;
+                    case "draft": drafts.save(p); break;
+                    case "read": store.markRead(p.getString("id")); Notifications.cancel(MainActivity.this,p.getString("id")); break;
+                    case "change": store.change(p.getString("id"),p.getString("action"),p.optString("content")); Notifications.cancel(MainActivity.this,p.getString("id")); break;
+                    case "delete": store.delete(p.getString("id")); Notifications.cancel(MainActivity.this,p.getString("id")); break;
+                    case "settings": if(config.save(p)) store.clearErrors(); ReviewWorker.schedule(MainActivity.this); break;
                     case "review":
                         if(!config.ready()) throw new IllegalArgumentException("先在设置中连接模型");
                         ReviewWorker.now(MainActivity.this,p.optString("id")); break;

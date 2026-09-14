@@ -1,0 +1,73 @@
+package app.notenote.todo;
+
+import android.Manifest;
+import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
+import android.content.Context;
+import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.net.Uri;
+import android.os.Build;
+import org.json.JSONArray;
+import org.json.JSONObject;
+
+final class Notifications {
+    static final String CHANNEL="note-progress";
+    interface Delivery { boolean send(JSONObject task,boolean progress) throws Exception; }
+    static boolean available(Context c) {
+        NotificationManager m=c.getSystemService(NotificationManager.class);
+        m.createNotificationChannel(new NotificationChannel(CHANNEL,"进展与待办提醒",NotificationManager.IMPORTANCE_DEFAULT));
+        return (Build.VERSION.SDK_INT<33||c.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)==PackageManager.PERMISSION_GRANTED)
+            &&m.areNotificationsEnabled()&&m.getNotificationChannel(CHANNEL).getImportance()!=NotificationManager.IMPORTANCE_NONE;
+    }
+    static PendingIntent action(Context c,JSONObject t,String action) {
+        String id=t.optString("id"); int revision=t.optInt("revision");
+        Intent intent=new Intent(c,NotificationReceiver.class).setAction(action)
+            .setData(Uri.parse("notenote://task/"+id+"/"+action+"/"+revision))
+            .putExtra("taskId",id).putExtra("revision",revision);
+        return PendingIntent.getBroadcast(c,0,intent,PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
+    }
+    static boolean send(Context c,JSONObject t,boolean progress) {
+        if(!available(c)) return false;
+        String id=t.optString("id");
+        Intent intent=new Intent(c,MainActivity.class).putExtra("taskId",id)
+            .setData(Uri.parse("notenote://task/"+id)).addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP|Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        PendingIntent open=PendingIntent.getActivity(c,0,intent,PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
+        String title=progress?"这条思考有了新进展":"一件待办等你推进";
+        String body=progress?"我往前推进了一步，来看看。":t.optString("text");
+        Notification publicVersion=new Notification.Builder(c,CHANNEL).setSmallIcon(R.drawable.ic_notification)
+            .setContentTitle("Note Note").setContentText("有一条新的进展或提醒").build();
+        Notification notification=new Notification.Builder(c,CHANNEL).setSmallIcon(R.drawable.ic_notification)
+            .setContentTitle(title).setContentText(body).setStyle(new Notification.BigTextStyle().bigText(body))
+            .setVisibility(Notification.VISIBILITY_PRIVATE).setPublicVersion(publicVersion)
+            .setAutoCancel(true).setContentIntent(open)
+            .addAction(new Notification.Action.Builder(null,"已完成",action(c,t,"complete")).build())
+            .addAction(new Notification.Action.Builder(null,"明天提醒",action(c,t,"snooze")).build()).build();
+        try { c.getSystemService(NotificationManager.class).notify(id,1,notification); return true; }
+        catch(SecurityException e) { return false; }
+    }
+    static void cancel(Context c,String id) { c.getSystemService(NotificationManager.class).cancel(id,1); }
+    static int flush(Store store,boolean quiet,long now,Delivery delivery) throws Exception {
+        if(quiet) return 0;
+        int sent=0; JSONArray tasks=store.all();
+        for(int i=0;i<tasks.length()&&sent<5;i++) {
+            // Check state and acknowledge the exact event under the same lock as user edits.
+            synchronized(store) {
+                JSONObject t=store.find(tasks.getJSONObject(i).getString("id"));
+                if(t==null||t.optBoolean("done")||t.optLong("snooze")>now) continue;
+                String eventId=t.optString("pendingNotification");
+                boolean progress=!eventId.isEmpty();
+                boolean reminder=t.optString("kind").equals("action")&&Rules.reminderEligible(false,
+                    t.optLong("due"),t.optLong("lastReminder"),t.optLong("snooze"),now);
+                if((progress||reminder)&&delivery.send(t,progress)) {
+                    if(progress) store.notificationSent(t.getString("id"),eventId);
+                    if(reminder) store.reminderSent(t.getString("id"),now);
+                    sent++;
+                }
+            }
+        }
+        return sent;
+    }
+}

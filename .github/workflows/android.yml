@@ -3,6 +3,7 @@ on:
   push:
     branches: [main]
     paths:
+      - ".github/workflows/android.yml"
       - "app/**"
       - "tests/**"
       - "build.gradle"
@@ -28,14 +29,16 @@ jobs:
         with:
           gradle-version: '8.11.1'
       - name: Check UI logic
-        run: node --test tests/core.test.cjs
+        run: |
+          node --check app/src/main/assets/app.js
+          node --test tests/core.test.cjs
       - name: Compile, lint and test
         run: gradle --no-daemon :app:assembleDebug :app:testDebugUnitTest :app:lintDebug
       - name: Verify APK signature
         run: |
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs app/build/outputs/apk/debug/app-debug.apk
           mkdir -p dist
-          cp app/build/outputs/apk/debug/app-debug.apk dist/NoteNote-0.1.0-test.apk
+          cp app/build/outputs/apk/debug/app-debug.apk dist/NoteNote-0.2.0-test.apk
           sha256sum dist/*.apk > dist/SHA256SUMS.txt
       - uses: actions/upload-artifact@v4
         with:
@@ -49,8 +52,12 @@ jobs:
           path: app/build/reports/
   device-test:
     needs: build
+    strategy:
+      fail-fast: false
+      matrix:
+        api: [29, 35]
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -68,7 +75,7 @@ jobs:
       - name: Device persistence, key storage and launch tests
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 29
+          api-level: ${{ matrix.api }}
           arch: x86_64
           profile: pixel_3
           disable-animations: true
@@ -81,7 +88,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: Android-device-evidence
+          name: Android-device-evidence-API-${{ matrix.api }}
           path: |
             app/build/reports/androidTests/
             device-evidence/
