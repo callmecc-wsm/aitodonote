@@ -33,7 +33,8 @@ final class ReviewEngine {
                 else report.discarded++;
             } catch(Exception e) {
                 if(stop.stopped()) { report.discarded++; break; }
-                report.error=e instanceof IllegalStateException||e instanceof IllegalArgumentException
+                // Low-level argument errors can echo HTTP header values; never persist them.
+                report.error=e instanceof IllegalStateException
                     ?e.getMessage():"连接失败，请检查网络后重试";
                 if(report.error==null) report.error="本轮连接失败";
                 if(report.error.length()>500) report.error=report.error.substring(0,500);

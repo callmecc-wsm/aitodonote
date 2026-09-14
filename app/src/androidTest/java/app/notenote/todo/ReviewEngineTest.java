@@ -65,6 +65,14 @@ public class ReviewEngineTest extends DeviceTestBase {
         assertFalse(ReviewEngine.eligible(store.find(first),System.currentTimeMillis()+Rules.DAY));
         store.clearErrors(); assertTrue(ReviewEngine.eligible(store.find(first),System.currentTimeMillis()));
     }
+    @Test public void transportArgumentErrorsCannotLeakHeadersIntoBackups() throws Exception {
+        String id=note("需要研究的问题","think").getString("id");
+        ReviewEngine.Report report=run(t->{throw new IllegalArgumentException("Invalid Authorization: Bearer private-test-canary");},System.currentTimeMillis());
+        assertEquals(1,report.failed);
+        assertFalse(report.error.contains("private-test-canary"));
+        assertFalse(store.find(id).getString("error").contains("private-test-canary"));
+        assertFalse(store.backup().toString().contains("private-test-canary"));
+    }
     @Test public void targetedReviewDoesNotSendOtherNotes() throws Exception {
         note("第一条","think"); String id=note("指定问题","think").getString("id");
         ReviewEngine.Report report=ReviewEngine.run(store,t->{assertEquals(id,t.getString("id"));return event("enough","");},
