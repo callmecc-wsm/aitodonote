@@ -17,6 +17,15 @@ import static org.junit.Assert.*;
 
 @RunWith(AndroidJUnit4.class)
 public class UiFlowTest extends DeviceTestBase {
+    private void screenshot(String name) throws Exception {
+        android.graphics.Bitmap bitmap=InstrumentationRegistry.getInstrumentation().getUiAutomation().takeScreenshot();
+        assertNotNull("Device screenshot must be available",bitmap);
+        java.io.File dir=new java.io.File(context.getExternalFilesDir(null),"ui-evidence");
+        assertTrue(dir.isDirectory()||dir.mkdirs());
+        try(java.io.FileOutputStream out=new java.io.FileOutputStream(new java.io.File(dir,name+".png"))) {
+            assertTrue(bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG,100,out));
+        } finally { bitmap.recycle(); }
+    }
     private WebView find(View v) {
         if(v instanceof WebView) return (WebView)v;
         if(v instanceof ViewGroup) for(int i=0;i<((ViewGroup)v).getChildCount();i++) {
@@ -46,6 +55,7 @@ public class UiFlowTest extends DeviceTestBase {
             scenario.recreate(); w=ready(scenario);
             assertTrue(js(w,"document.querySelector('#capture-text').value").contains("尚未保存的问题"));
             assertEquals("false",js(w,"document.querySelector('#capture-search').checked"));
+            screenshot("01-capture-restored");
             assertEquals("\"think\"",js(w,"document.querySelector('.type-button.selected').dataset.kind"));
             js(w,"document.querySelector('#capture-form').dispatchEvent(new Event('submit',{bubbles:true,cancelable:true}));true");
             assertEquals(1,store.all().length()); assertFalse(store.all().getJSONObject(0).getBoolean("searchAllowed"));
@@ -67,6 +77,75 @@ public class UiFlowTest extends DeviceTestBase {
             assertFalse(store.find(t.getString("id")).getBoolean("unread"));
             js(w,"document.querySelector('[data-act=close]').click();document.querySelector('[data-tab=progress]').click();true");
             assertEquals("0",js(w,"document.querySelectorAll('.nav-badge').length"));
+        }
+    }
+
+    @Test public void editDraftRestoresSheetAfterRecreationAndCommitsOnlyOnSave() throws Exception {
+        JSONObject t=note("原问题","think");String id=t.getString("id");
+        try(ActivityScenario<MainActivity> scenario=ActivityScenario.launch(MainActivity.class)) {
+            WebView w=ready(scenario);
+            js(w,"document.querySelector('.card').click();document.querySelector('[data-act=edit]').click();document.querySelector('#edit-text').value='编辑到一半';document.querySelector('#edit-text').dispatchEvent(new Event('input',{bubbles:true}));true");
+            assertEquals("原问题",store.find(id).getString("text"));
+            scenario.recreate();w=ready(scenario);
+            assertEquals("true",js(w,"document.querySelector('#edit-text').value==='编辑到一半'"));
+            screenshot("02-edit-restored");
+            js(w,"document.querySelector('#edit-form').dispatchEvent(new Event('submit',{bubbles:true,cancelable:true}));true");
+            assertEquals("编辑到一半",store.find(id).getString("text"));
+            assertFalse(new Drafts(context).workspace().getJSONObject("entries").has("edit:"+id));
+            assertEquals("false",js(w,"document.body.classList.contains('dialog-open')"));
+        }
+    }
+    @Test public void repliesStaySeparateAcrossNotesAndSurviveRecreation() throws Exception {
+        String a=note("第一个问题","think").getString("id"),b=note("第二个问题","think").getString("id");
+        try(ActivityScenario<MainActivity> scenario=ActivityScenario.launch(MainActivity.class)) {
+            WebView w=ready(scenario);
+            js(w,"showDetail('"+a+"');document.querySelector('#reply-text').value='甲的补充';document.querySelector('#reply-text').dispatchEvent(new Event('input',{bubbles:true}));close();showDetail('"+b+"');true");
+            assertEquals("true",js(w,"document.querySelector('#reply-text').value===''"));
+            js(w,"document.querySelector('#reply-text').value='乙的补充';document.querySelector('#reply-text').dispatchEvent(new Event('input',{bubbles:true}));true");
+            scenario.recreate();w=ready(scenario);
+            assertEquals("true",js(w,"document.querySelector('#reply-text').value==='乙的补充'"));
+            screenshot("03-reply-restored");
+            assertEquals(0,store.find(a).getJSONArray("events").length());
+            js(w,"document.querySelector('#reply-form').dispatchEvent(new Event('submit',{bubbles:true,cancelable:true}));true");
+            assertEquals("乙的补充",store.find(b).getJSONArray("events").getJSONObject(0).getString("detail"));
+            assertFalse(new Drafts(context).workspace().getJSONObject("entries").has("reply:"+b));
+            js(w,"close();showDetail('"+a+"');true");
+            assertEquals("true",js(w,"document.querySelector('#reply-text').value==='甲的补充'"));
+        }
+    }
+    @Test public void androidSharePreservesDraftAndIsNotDuplicatedByRecreation() throws Exception {
+        new Drafts(context).save(new JSONObject().put("text","先写下的草稿"));
+        android.content.Intent intent=new android.content.Intent(context,MainActivity.class)
+            .setAction(android.content.Intent.ACTION_SEND).setType("text/plain")
+            .putExtra(android.content.Intent.EXTRA_TEXT,"分享进来的问题");
+        try(ActivityScenario<MainActivity> scenario=ActivityScenario.launch(intent)) {
+            WebView w=ready(scenario);scenario.recreate();w=ready(scenario);
+            assertEquals("true",js(w,"document.querySelector('#capture-text').value==='先写下的草稿'"));
+            assertEquals(1,new Drafts(context).workspace().getJSONArray("shares").length());
+            screenshot("04-share-preserves-draft");
+            js(w,"document.querySelector('[data-act=take-share]').click();true");
+            assertEquals("true",js(w,"document.querySelector('#capture-text').value==='先写下的草稿'"));
+            assertEquals(0,store.all().length());
+            js(w,"document.querySelector('#capture-form').dispatchEvent(new Event('submit',{bubbles:true,cancelable:true}));document.querySelector('[data-act=take-share]').click();true");
+            assertEquals("true",js(w,"document.querySelector('#capture-text').value==='分享进来的问题'"));
+            assertEquals(0,new Drafts(context).workspace().getJSONArray("shares").length());
+            assertEquals(1,store.all().length());
+        }
+    }
+    @Test public void notificationContinueActionOpensMatchingReplyAndKeepsOtherDraft() throws Exception {
+        JSONObject a=note("另一个问题","think"),b=note("通知中的问题","think");
+        new Drafts(context).saveTask("reply",a.getString("id"),new JSONObject().put("text","另一条的草稿"));
+        try(ActivityScenario<MainActivity> scenario=ActivityScenario.launch(MainActivity.class)) {
+            WebView w=ready(scenario);
+            Notifications.open(context,b,true).send();
+            long deadline=SystemClock.elapsedRealtime()+10000;boolean opened=false;
+            while(SystemClock.elapsedRealtime()<deadline) {
+                if(js(w,"Boolean(document.querySelector('#reply-form')&&document.querySelector('#reply-form').dataset.id==='"+b.getString("id")+"'&&document.activeElement.id==='reply-text')").equals("true")) {opened=true;break;}
+                SystemClock.sleep(100);
+            }
+            assertTrue("Notification must focus reply on its own note",opened);
+            screenshot("05-notification-reply");
+            assertTrue(new Drafts(context).workspace().getJSONObject("entries").has("reply:"+a.getString("id")));
         }
     }
 }

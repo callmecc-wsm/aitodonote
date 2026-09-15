@@ -25,7 +25,7 @@ public final class MainActivity extends Activity {
     private Drafts drafts;
     private volatile String notice="";
     private volatile String focusId="";
-    private volatile String sharedText="";
+    private volatile boolean focusReply=false;
     private volatile boolean testing=false;
     private static final String ORIGIN="https://app.notenote.local";
     private final java.util.concurrent.ExecutorService io=Executors.newSingleThreadExecutor();
@@ -79,9 +79,13 @@ public final class MainActivity extends Activity {
     @Override protected void onNewIntent(Intent intent) { super.onNewIntent(intent); setIntent(intent); readIntent(intent); }
     private void readIntent(Intent intent) {
         focusId=intent.getStringExtra("taskId")==null?"":intent.getStringExtra("taskId");
+        focusReply=intent.getBooleanExtra("reply",false);
         if(Intent.ACTION_SEND.equals(intent.getAction()) && "text/plain".equals(intent.getType())) {
             String text=intent.getStringExtra(Intent.EXTRA_TEXT);
-            if(text!=null) sharedText=text.substring(0,Math.min(text.length(),10000));
+            if(text!=null&&!text.trim().isEmpty()) {
+                try { drafts.addShare(text); notice="分享已接收，原来的草稿仍在"; }
+                catch(Exception e) { notice="分享未接收，请先处理已有分享后重试"; }
+            }
         }
     }
     private void openExternal(String url) {
@@ -108,13 +112,26 @@ public final class MainActivity extends Activity {
                         result.put("tasks",store.all()).put("config",config.publicState()).put("native",true)
                             .put("busy",ReviewWorker.busy()).put("activeId",ReviewWorker.activeId).put("testing",testing)
                             .put("notifications",Notifications.available(MainActivity.this)).put("draft",drafts.read())
-                            .put("focusId",focusId).put("sharedText",sharedText).put("notice",notice);
-                        focusId=""; sharedText=""; notice=""; break;
-                    case "save": result.put("task",store.save(p)); Notifications.cancel(MainActivity.this,p.optString("id")); break;
+                            .put("workspace",drafts.workspace()).put("focusId",focusId).put("focusReply",focusReply).put("notice",notice);
+                        focusId=""; focusReply=false; notice=""; break;
+                    case "save":
+                        result.put("task",store.save(p));
+                        if(p.optString("id").isEmpty()) drafts.save(new JSONObject());
+                        else drafts.clearTask("edit",p.getString("id"));
+                        Notifications.cancel(MainActivity.this,p.optString("id")); break;
                     case "draft": drafts.save(p); break;
+                    case "taskDraft":
+                        if(store.find(p.getString("id"))==null) throw new IllegalArgumentException("记录已不存在");
+                        drafts.saveTask(p.getString("scope"),p.getString("id"),p); break;
+                    case "discardDraft": drafts.clearTask(p.getString("scope"),p.getString("id")); break;
+                    case "leaveDraft": drafts.leave(); break;
+                    case "takeShare": result.put("draft",drafts.takeShare(p.getString("id"))); break;
                     case "read": if(store.markRead(p.getString("id"),p.optString("eventId"))) Notifications.cancel(MainActivity.this,p.getString("id")); break;
-                    case "change": store.change(p.getString("id"),p.getString("action"),p.optString("content")); Notifications.cancel(MainActivity.this,p.getString("id")); break;
-                    case "delete": store.delete(p.getString("id")); Notifications.cancel(MainActivity.this,p.getString("id")); break;
+                    case "change":
+                        store.change(p.getString("id"),p.getString("action"),p.optString("content"));
+                        if(p.getString("action").equals("reply")) drafts.clearTask("reply",p.getString("id"));
+                        Notifications.cancel(MainActivity.this,p.getString("id")); break;
+                    case "delete": store.delete(p.getString("id")); drafts.deleteTask(p.getString("id")); Notifications.cancel(MainActivity.this,p.getString("id")); break;
                     case "settings": if(config.save(p)) store.clearErrors(); ReviewWorker.schedule(MainActivity.this); break;
                     case "review":
                         if(!config.ready()) throw new IllegalArgumentException("先在设置中连接模型");

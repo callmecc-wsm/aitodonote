@@ -95,4 +95,19 @@ public class NotificationTest extends DeviceTestBase {
         assertTrue(store.find(first.getString("id")).getBoolean("done"));
         assertFalse(store.find(second.getString("id")).getBoolean("done"));
     }
+
+    @Test public void progressNotificationShowsLatestSummaryButLockScreenStaysGeneric() throws Exception {
+        JSONObject t=note("私人的原问题","think");String id=t.getString("id");
+        store.result(id,t.getInt("revision"),event("enough","").put("summary","过时摘要"),"");
+        store.result(id,t.getInt("revision"),event("ask_user","补充一下背景？").put("summary","最新的思考摘要"),"");
+        Notifications.available(context);
+        Notification n=Notifications.build(context,store.find(id),true);
+        assertEquals("最新的思考摘要",n.extras.getCharSequence(Notification.EXTRA_TEXT).toString());
+        assertEquals("想听听你的补充",n.extras.getCharSequence(Notification.EXTRA_TITLE).toString());
+        assertEquals(3,n.actions.length);assertEquals("接着聊",n.actions[0].title.toString());
+        assertNotEquals(n.contentIntent,n.actions[0].actionIntent);
+        assertNotNull(n.publicVersion);
+        assertFalse(n.publicVersion.extras.toString().contains("私人的原问题"));
+        assertFalse(n.publicVersion.extras.toString().contains("最新的思考摘要"));
+    }
 }

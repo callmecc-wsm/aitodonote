@@ -5,3 +5,13 @@
 
 .compose > .tiny-check{padding:0 4px 5px;font-size:11px;line-height:1.6;color:var(--muted)}
 .run-row{padding:12px 0;border-bottom:1px solid #e9ece5}.run-row:last-child{border-bottom:0}.run-row p{margin:4px 0;font-size:13px}
+
+/* Native WebViews before Chromium 84 do not support flex gap. Use margins on new controls. */
+.draft-hint{font-size:12px;line-height:1.6;color:#53675d;margin:10px 4px 16px}
+.draft-tag{color:#53675d;background:#eaf0e7;padding:2px 6px;border-radius:5px;font-size:10px}
+.share-inbox{padding:18px;background:#edf2e9;border:1px solid #d9e3d5;border-radius:18px;margin:14px 0}
+.share-inbox h3{font-size:15px;margin:0 0 8px}.shared-item{border-top:1px solid #d9e3d5;padding-top:12px;margin-top:12px}
+.shared-item p{font-size:14px;line-height:1.7;white-space:pre-wrap;word-wrap:break-word}
+.shared-item .secondary{min-height:44px}.dialog-open{overflow:hidden}
+.modal button{min-height:44px}.modal .text-button{padding:8px}
+button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{outline:2px solid #336b51;outline-offset:3px}

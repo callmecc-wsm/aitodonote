@@ -19,7 +19,7 @@ public class RecoveryTest extends DeviceTestBase {
         store.delete(good.getString("id"));
         JSONObject bad=new JSONObject(good.toString()).put("id",java.util.UUID.randomUUID().toString())
             .put("events",new JSONArray().put(new JSONObject().put("role","script").put("detail","invalid")));
-        JSONObject backup=new JSONObject().put("format","notenote-backup").put("version",1).put("tasks",new JSONArray().put(good).put(bad));
+        JSONObject backup=new JSONObject().put("format","notenote-backup").put("version",1).put("tasks",new JSONArray().put(bad).put(good));
         try { store.restore(backup.toString()); fail("invalid backup accepted"); } catch(IllegalArgumentException expected) {}
         assertEquals(0,store.all().length());
     }

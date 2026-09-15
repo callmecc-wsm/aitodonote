@@ -192,7 +192,8 @@ public final class Store extends SQLiteOpenHelper {
         if(list.length()>10000) throw new IllegalArgumentException("单次最多导入 10,000 条");
         SQLiteDatabase db=getWritableDatabase(); db.beginTransaction(); int count=0;
         try {
-            for(int i=0;i<list.length();i++) {
+            // Backups are newest first; insert oldest first to retain that order.
+            for(int i=list.length()-1;i>=0;i--) {
                 JSONObject t=cleanTask(list.getJSONObject(i));
                 if(find(t.getString("id"))==null) { put(t); count++; }
             }

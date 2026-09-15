@@ -15,7 +15,7 @@ public abstract class DeviceTestBase {
         store=Store.get(context);
         store.getWritableDatabase().delete("tasks",null,null);
         config=new Config(context); config.prefs.edit().clear().commit();
-        new Drafts(context).save(new JSONObject());
+        context.getSharedPreferences("drafts",Context.MODE_PRIVATE).edit().clear().commit();
         context.getSystemService(android.app.NotificationManager.class).cancelAll();
     }
     JSONObject note(String text,String kind) throws Exception {
