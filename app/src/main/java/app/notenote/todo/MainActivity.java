@@ -33,6 +33,16 @@ public final class MainActivity extends Activity {
     @Override public void onCreate(Bundle saved) {
         super.onCreate(saved); store=Store.get(this); config=new Config(this); drafts=new Drafts(this);
         web=new WebView(this); web.setBackgroundColor(Color.rgb(247,248,244));
+        // Legacy WebView's GPU glyph rasterizer can abort the entire app process.
+        // Use Android's software View layer for Chromium 74 and older; current
+        // WebViews keep their default rendering. This app draws text and forms.
+        android.content.pm.PackageInfo provider=WebView.getCurrentWebViewPackage();
+        if(provider!=null&&provider.versionName!=null) {
+            try {
+                int major=Integer.parseInt(provider.versionName.split("\\.")[0]);
+                if(major>0&&major<=74) web.setLayerType(android.view.View.LAYER_TYPE_SOFTWARE,null);
+            } catch(NumberFormatException ignored) { }
+        }
         WebSettings settings=web.getSettings();
         settings.setJavaScriptEnabled(true); settings.setDomStorageEnabled(false);
         settings.setAllowFileAccess(false); settings.setAllowContentAccess(false);
