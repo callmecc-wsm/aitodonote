@@ -14,7 +14,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import static org.junit.Assert.*;
 @RunWith(AndroidJUnit4.class)
-public class LaunchTest {
+public class LaunchTest extends DeviceTestBase {
  private WebView find(View v){if(v instanceof WebView)return (WebView)v;if(v instanceof ViewGroup){ViewGroup g=(ViewGroup)v;for(int n=0;n<g.getChildCount();n++){WebView w=find(g.getChildAt(n));if(w!=null)return w;}}return null;}
  private String js(android.app.Instrumentation i,WebView w,String script)throws Exception{CountDownLatch done=new CountDownLatch(1);AtomicReference<String> result=new AtomicReference<>("");i.runOnMainSync(()->w.evaluateJavascript(script,r->{result.set(r);done.countDown();}));assertTrue("WebView callback timed out",done.await(5,TimeUnit.SECONDS));return result.get();}
  @Test public void appRendersAndCapturesNativeRecord()throws Exception{

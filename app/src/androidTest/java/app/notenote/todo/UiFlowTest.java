@@ -25,6 +25,17 @@ public class UiFlowTest extends DeviceTestBase {
         try(java.io.FileOutputStream out=new java.io.FileOutputStream(new java.io.File(dir,name+".png"))) {
             assertTrue(bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG,100,out));
         } finally { bitmap.recycle(); }
+        // UTP removes app-scoped external files when uninstalling the test APKs.
+        shell("mkdir -p /sdcard/Download/NoteNoteEvidence");
+        shell("cp "+new java.io.File(dir,name+".png").getAbsolutePath()+" /sdcard/Download/NoteNoteEvidence/"+name+".png");
+    }
+    private void shell(String command) throws Exception {
+        android.os.ParcelFileDescriptor fd=InstrumentationRegistry.getInstrumentation().getUiAutomation().executeShellCommand(command);
+        try(java.io.InputStream in=new android.os.ParcelFileDescriptor.AutoCloseInputStream(fd)) {
+            byte[] buffer=new byte[1024];java.io.ByteArrayOutputStream output=new java.io.ByteArrayOutputStream();int count;
+            while((count=in.read(buffer))!=-1)output.write(buffer,0,count);
+            assertEquals("Screenshot copy must succeed","",output.toString("UTF-8").trim());
+        }
     }
     private WebView find(View v) {
         if(v instanceof WebView) return (WebView)v;
@@ -41,7 +52,10 @@ public class UiFlowTest extends DeviceTestBase {
     private WebView ready(ActivityScenario<MainActivity> scenario) throws Exception {
         AtomicReference<WebView> ref=new AtomicReference<>();
         scenario.onActivity(a->ref.set(find(a.getWindow().getDecorView())));
-        WebView w=ref.get(); assertNotNull(w); long deadline=SystemClock.elapsedRealtime()+20000;
+        return ready(ref.get());
+    }
+    private WebView ready(WebView w) throws Exception {
+        assertNotNull(w); long deadline=SystemClock.elapsedRealtime()+20000;
         while(SystemClock.elapsedRealtime()<deadline) {
             if(js(w,"Boolean(document.querySelector('#capture-text'))").equals("true")) return w;
             SystemClock.sleep(100);
@@ -135,8 +149,15 @@ public class UiFlowTest extends DeviceTestBase {
     @Test public void notificationContinueActionOpensMatchingReplyAndKeepsOtherDraft() throws Exception {
         JSONObject a=note("另一个问题","think"),b=note("通知中的问题","think");
         new Drafts(context).saveTask("reply",a.getString("id"),new JSONObject().put("text","另一条的草稿"));
-        try(ActivityScenario<MainActivity> scenario=ActivityScenario.launch(MainActivity.class)) {
-            WebView w=ready(scenario);
+        // ActivityScenario matches lifecycle events against the original Intent. This test
+        // deliberately replaces that Intent through a real notification, so own cleanup.
+        android.app.Instrumentation instrumentation=InstrumentationRegistry.getInstrumentation();
+        android.app.Activity activity=instrumentation.startActivitySync(new android.content.Intent(context,MainActivity.class)
+            .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK));
+        try {
+            AtomicReference<WebView> ref=new AtomicReference<>();
+            instrumentation.runOnMainSync(()->ref.set(find(activity.getWindow().getDecorView())));
+            WebView w=ready(ref.get());
             Notifications.open(context,b,true).send();
             long deadline=SystemClock.elapsedRealtime()+10000;boolean opened=false;
             while(SystemClock.elapsedRealtime()<deadline) {
@@ -146,6 +167,17 @@ public class UiFlowTest extends DeviceTestBase {
             assertTrue("Notification must focus reply on its own note",opened);
             screenshot("05-notification-reply");
             assertTrue(new Drafts(context).workspace().getJSONObject("entries").has("reply:"+a.getString("id")));
+        } finally { instrumentation.runOnMainSync(activity::finish);instrumentation.waitForIdleSync(); }
+    }
+    @Test public void backgroundRefreshKeepsReadingPositionInLongProgress() throws Exception {
+        JSONObject t=note("一个很长的研究问题","think");String id=t.getString("id");
+        store.result(id,t.getInt("revision"),event("enough","").put("detail",new String(new char[4000]).replace('\0','文')),"");
+        try(ActivityScenario<MainActivity> scenario=ActivityScenario.launch(MainActivity.class)) {
+            WebView w=ready(scenario);
+            js(w,"document.querySelector('.card').click();document.querySelector('.modal').scrollTop=250;true");
+            assertEquals("true",js(w,"document.querySelector('.modal').scrollTop>200"));
+            js(w,"lastSignature='';refresh();true");
+            assertEquals("true",js(w,"document.querySelector('.modal').scrollTop>200"));
         }
     }
 }
