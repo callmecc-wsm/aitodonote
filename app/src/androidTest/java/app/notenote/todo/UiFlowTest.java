@@ -17,26 +17,6 @@ import static org.junit.Assert.*;
 
 @RunWith(AndroidJUnit4.class)
 public class UiFlowTest extends DeviceTestBase {
-    private void screenshot(String name) throws Exception {
-        android.graphics.Bitmap bitmap=InstrumentationRegistry.getInstrumentation().getUiAutomation().takeScreenshot();
-        assertNotNull("Device screenshot must be available",bitmap);
-        java.io.File dir=new java.io.File(context.getExternalFilesDir(null),"ui-evidence");
-        assertTrue(dir.isDirectory()||dir.mkdirs());
-        try(java.io.FileOutputStream out=new java.io.FileOutputStream(new java.io.File(dir,name+".png"))) {
-            assertTrue(bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG,100,out));
-        } finally { bitmap.recycle(); }
-        // UTP removes app-scoped external files when uninstalling the test APKs.
-        shell("mkdir -p /sdcard/Download/NoteNoteEvidence");
-        shell("cp "+new java.io.File(dir,name+".png").getAbsolutePath()+" /sdcard/Download/NoteNoteEvidence/"+name+".png");
-    }
-    private void shell(String command) throws Exception {
-        android.os.ParcelFileDescriptor fd=InstrumentationRegistry.getInstrumentation().getUiAutomation().executeShellCommand(command);
-        try(java.io.InputStream in=new android.os.ParcelFileDescriptor.AutoCloseInputStream(fd)) {
-            byte[] buffer=new byte[1024];java.io.ByteArrayOutputStream output=new java.io.ByteArrayOutputStream();int count;
-            while((count=in.read(buffer))!=-1)output.write(buffer,0,count);
-            assertEquals("Screenshot copy must succeed","",output.toString("UTF-8").trim());
-        }
-    }
     private WebView find(View v) {
         if(v instanceof WebView) return (WebView)v;
         if(v instanceof ViewGroup) for(int i=0;i<((ViewGroup)v).getChildCount();i++) {
@@ -69,7 +49,7 @@ public class UiFlowTest extends DeviceTestBase {
             scenario.recreate(); w=ready(scenario);
             assertTrue(js(w,"document.querySelector('#capture-text').value").contains("尚未保存的问题"));
             assertEquals("false",js(w,"document.querySelector('#capture-search').checked"));
-            screenshot("01-capture-restored");
+            DeviceScreenshots.capture(context,w,"01-capture-restored");
             assertEquals("\"think\"",js(w,"document.querySelector('.type-button.selected').dataset.kind"));
             js(w,"document.querySelector('#capture-form').dispatchEvent(new Event('submit',{bubbles:true,cancelable:true}));true");
             assertEquals(1,store.all().length()); assertFalse(store.all().getJSONObject(0).getBoolean("searchAllowed"));
@@ -102,7 +82,7 @@ public class UiFlowTest extends DeviceTestBase {
             assertEquals("原问题",store.find(id).getString("text"));
             scenario.recreate();w=ready(scenario);
             assertEquals("true",js(w,"document.querySelector('#edit-text').value==='编辑到一半'"));
-            screenshot("02-edit-restored");
+            DeviceScreenshots.capture(context,w,"02-edit-restored");
             js(w,"document.querySelector('#edit-form').dispatchEvent(new Event('submit',{bubbles:true,cancelable:true}));true");
             assertEquals("编辑到一半",store.find(id).getString("text"));
             assertFalse(new Drafts(context).workspace().getJSONObject("entries").has("edit:"+id));
@@ -118,7 +98,7 @@ public class UiFlowTest extends DeviceTestBase {
             js(w,"document.querySelector('#reply-text').value='乙的补充';document.querySelector('#reply-text').dispatchEvent(new Event('input',{bubbles:true}));true");
             scenario.recreate();w=ready(scenario);
             assertEquals("true",js(w,"document.querySelector('#reply-text').value==='乙的补充'"));
-            screenshot("03-reply-restored");
+            DeviceScreenshots.capture(context,w,"03-reply-restored");
             assertEquals(0,store.find(a).getJSONArray("events").length());
             js(w,"document.querySelector('#reply-form').dispatchEvent(new Event('submit',{bubbles:true,cancelable:true}));true");
             assertEquals("乙的补充",store.find(b).getJSONArray("events").getJSONObject(0).getString("detail"));
@@ -136,7 +116,7 @@ public class UiFlowTest extends DeviceTestBase {
             WebView w=ready(scenario);scenario.recreate();w=ready(scenario);
             assertEquals("true",js(w,"document.querySelector('#capture-text').value==='先写下的草稿'"));
             assertEquals(1,new Drafts(context).workspace().getJSONArray("shares").length());
-            screenshot("04-share-preserves-draft");
+            DeviceScreenshots.capture(context,w,"04-share-preserves-draft");
             js(w,"document.querySelector('[data-act=take-share]').click();true");
             assertEquals("true",js(w,"document.querySelector('#capture-text').value==='先写下的草稿'"));
             assertEquals(0,store.all().length());
@@ -165,7 +145,7 @@ public class UiFlowTest extends DeviceTestBase {
                 SystemClock.sleep(100);
             }
             assertTrue("Notification must focus reply on its own note",opened);
-            screenshot("05-notification-reply");
+            DeviceScreenshots.capture(context,w,"05-notification-reply");
             assertTrue(new Drafts(context).workspace().getJSONObject("entries").has("reply:"+a.getString("id")));
         } finally { instrumentation.runOnMainSync(activity::finish);instrumentation.waitForIdleSync(); }
     }

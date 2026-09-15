@@ -67,8 +67,13 @@ public final class MainActivity extends Activity {
             }
             private WebResourceResponse blocked() { return new WebResourceResponse("text/plain","UTF-8",403,"Blocked",java.util.Collections.emptyMap(),new ByteArrayInputStream(new byte[0])); }
         });
-        setContentView(web);
-        web.setOnApplyWindowInsetsListener((view,insets)->{
+        if(Build.VERSION.SDK_INT>=30) getWindow().setDecorFitsSystemWindows(false);
+        // WebView does not reliably honor View padding for its page viewport.
+        // Apply system/keyboard insets to a parent so the page gets the usable size.
+        android.widget.FrameLayout root=new android.widget.FrameLayout(this);
+        root.addView(web,new android.widget.FrameLayout.LayoutParams(-1,-1));
+        setContentView(root);
+        root.setOnApplyWindowInsetsListener((view,insets)->{
             if(Build.VERSION.SDK_INT>=30) {
                 android.graphics.Insets bars=insets.getInsets(WindowInsets.Type.systemBars()|WindowInsets.Type.ime());
                 view.setPadding(bars.left,bars.top,bars.right,bars.bottom);
