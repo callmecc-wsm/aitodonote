@@ -17,7 +17,7 @@ function persistTaskDraft(scope,id){
 }
 function clearTaskDraft(scope,id){if(workspace().entries)delete workspace().entries[scope+':'+id];}
 function hasTaskDraft(id){return taskDraft('edit',id)||taskDraft('reply',id);}
-async function receiveShare(id){
+function receiveShare(id){
   const r=call('takeShare',{id});Object.assign(draft,r.draft);composeKind=r.draft.kind||'auto';
   refresh(true);expandCapture();$('#capture-text').focus();toast('分享已放入输入框，保存后才会开始处理');
 }
