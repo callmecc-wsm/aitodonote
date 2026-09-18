@@ -208,4 +208,31 @@ public class UiFlowTest extends DeviceTestBase {
         }
     }
 
+    @Test public void realTouchShowsKeyboardWithoutCoveringCapture() throws Exception {
+        try(ActivityScenario<MainActivity> scenario=ActivityScenario.launch(MainActivity.class)) {
+            WebView w=ready(scenario);
+            double initialHeight=Double.parseDouble(js(w,"innerHeight"));
+            org.json.JSONArray point=new org.json.JSONArray(js(w,"(function(){var r=document.querySelector('#capture-text').getBoundingClientRect();return [r.left+r.width/2,r.top+r.height/2,innerWidth];})()"));
+            int[] location=new int[3];
+            InstrumentationRegistry.getInstrumentation().runOnMainSync(()->{w.getLocationOnScreen(location);location[2]=w.getWidth();});
+            float scale=(float)(location[2]/point.getDouble(2));
+            float x=location[0]+(float)point.getDouble(0)*scale,y=location[1]+(float)point.getDouble(1)*scale;
+            long down=SystemClock.uptimeMillis();
+            android.view.MotionEvent press=android.view.MotionEvent.obtain(down,down,android.view.MotionEvent.ACTION_DOWN,x,y,0);
+            android.view.MotionEvent release=android.view.MotionEvent.obtain(down,down+60,android.view.MotionEvent.ACTION_UP,x,y,0);
+            try {
+                InstrumentationRegistry.getInstrumentation().sendPointerSync(press);
+                InstrumentationRegistry.getInstrumentation().sendPointerSync(release);
+            } finally { press.recycle();release.recycle(); }
+            long deadline=SystemClock.elapsedRealtime()+8000;
+            while(SystemClock.elapsedRealtime()<deadline&&Double.parseDouble(js(w,"innerHeight"))>initialHeight-80) SystemClock.sleep(100);
+            assertTrue("A real keyboard must reduce the page viewport",Double.parseDouble(js(w,"innerHeight"))<initialHeight-80);
+            assertEquals("true",js(w,"document.querySelector('.capture-dock').classList.contains('expanded')"));
+            js(w,"document.querySelector('#capture-text').value='开会时想到的问题，先记下来';document.querySelector('#capture-text').dispatchEvent(new Event('input',{bubbles:true}));true");
+            assertEquals("true",js(w,"(function(){var d=document.querySelector('.capture-dock').getBoundingClientRect(),b=document.querySelector('#capture-form .save-button').getBoundingClientRect();return d.top>=0&&d.bottom<=innerHeight+1&&b.bottom<=innerHeight&&b.top>=0;})()"));
+            DeviceScreenshots.capture(context,w,"13-capture-keyboard");
+            assertEquals("开会时想到的问题，先记下来",new Drafts(context).read().getString("text"));
+        }
+    }
+
 }
