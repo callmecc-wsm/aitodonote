@@ -1,16 +1,16 @@
 # 构建与验证状态
 
-## v0.4.0
+## v0.5.0
 
-验证日期：2026-09-18。交付源码：[f171c54](https://github.com/callmecc-wsm/aitodonote/commit/f171c54ae81109bdc92fd08a400df222acb21271)。[最终构建](https://github.com/callmecc-wsm/aitodonote/actions/runs/35331667957)全部通过。
+验证日期：2026-09-18。交付源码：[bc7e3bf](https://github.com/callmecc-wsm/aitodonote/commit/bc7e3bfa8b56cb3fba1555d0186fc150e357db76)。[最终构建](https://github.com/callmecc-wsm/aitodonote/actions/runs/35340759271)及三版 Android 设备测试均已通过。
 
 | 验证 | 结果 |
 | --- | --- |
 | JavaScript | 8 项通过 |
 | JVM 单元测试 | 10 项通过 |
-| Android 8.0 / API 26 | 62 项通过；失败、错误、跳过均为 0 |
-| Android 10 / API 29 | 62 项通过；失败、错误、跳过均为 0 |
-| Android 15 / API 35 | 62 项通过；失败、错误、跳过均为 0 |
+| Android 8.0 / API 26 | 62 项通过 |
+| Android 10 / API 29 | 62 项通过 |
+| Android 15 / API 35 | 62 项通过（同源码重跑） |
 | 构建与 Lint | 通过 |
 | APK 签名 | v2 开发测试签名校验通过 |
 
@@ -18,10 +18,10 @@
 
 ## 安装包
 
-[下载 Actions 附件](https://github.com/callmecc-wsm/aitodonote/actions/runs/35331667957/artifacts/10541391217)，解压取得 `NoteNote-0.4.0-test.apk`。APK 为 2,482,487 字节，附件保留至 2026-12-17。下载文件、附件内校验文件、构建日志的 SHA-256 一致：
+[下载 Actions 附件](https://github.com/callmecc-wsm/aitodonote/actions/runs/35340759271/artifacts/10544946945)，解压取得 `NoteNote-0.5.0-test.apk`。APK 为 2,493,375 字节，附件保留至 2026-12-17。下载文件、附件内校验文件、构建日志的 SHA-256 一致：
 
 ```text
-cd1882fa42549768292f167885419583c60df808f653f819a25bafa9d75a8a28
+6680ca4dc7fe7f789142d27a32c1f575c358b6f6c962c517c8231fff893951d5
 ```
 
 ## 界面走查
@@ -45,15 +45,17 @@ cd1882fa42549768292f167885419583c60df808f653f819a25bafa9d75a8a28
 | 13. 搜索 | `12-search.png` | 结果与即时数量一致，无横向溢出 |
 | 14. 键盘输入 | `13-capture-keyboard.png` | 真实触摸唤起系统键盘，输入与发送按钮仍可见 |
 
-已下载三版设备的 JUnit XML 并核对计数。最终 Android 15 的首页、草稿、AI 进展、详情、设置、通知跳转、行动详情、搜索和键盘画面均检查过；其他流程同时参考前一轮相同布局的截图。三版系统键盘均成功唤起，输入和发送按钮位于键盘上方。Android 8 的 Gboard 首次使用提示遮住部分类型与搜索选项，该图不作为这些选项无遮挡的证据；Android 10、15 无此浮层。
+设备报告与 14 张流程截图：[API 26](https://github.com/callmecc-wsm/aitodonote/actions/runs/35340759271/artifacts/10544922548)、[API 29](https://github.com/callmecc-wsm/aitodonote/actions/runs/35340759271/artifacts/10544488603)、[API 35 最终重跑](https://github.com/callmecc-wsm/aitodonote/actions/runs/35340759271/artifacts/10545362549)。三份 XML 均为 62 项、0 失败、0 错误、0 跳过。
 
-[Android 8 证据](https://github.com/callmecc-wsm/aitodonote/actions/runs/35331667957/artifacts/10541940600) · [Android 10 证据](https://github.com/callmecc-wsm/aitodonote/actions/runs/35331667957/artifacts/10541815648) · [Android 15 证据](https://github.com/callmecc-wsm/aitodonote/actions/runs/35331667957/artifacts/10541960454)。每份包含 14 张截图和测试报告。
+首次 API 35 运行有 1 项触摸测试失败。日志显示输入被系统桌面 `com.android.launcher3` 的 ANR 弹窗截获，截图中也出现 Quickstep 无响应提示。保留源码和测试不变，仅重跑失败任务后通过；首轮被遮挡的截图不作为视觉验收依据。最终 API 35 截图已确认首页、设置和键盘场景没有该弹窗。
+
+API 29 的键盘截图捕获了已缩小的应用窗口，但键盘按键尚未绘出；键盘外观与遮挡检查以最终 API 35 的完整键盘截图为依据。三版触摸测试均验证视口缩小、输入区展开以及发送按钮位于可见区域。
 
 ## 回归范围
 
-保留记录持久化、密钥存储、调度预算、修订并发、模型协议、HTTPS、来源过滤、通知动作与隐私、备份恢复、草稿与分享测试。本轮新增带内容的页面导航与搜索、展开收起草稿、真实触摸和系统键盘场景。
+保留记录持久化、密钥存储、调度预算、修订并发、模型协议、HTTPS、来源过滤、通知动作与隐私、备份恢复、草稿与分享测试。继续覆盖带内容的页面导航与搜索、展开收起草稿、真实触摸和系统键盘场景。
 
-第一轮发现两个失败：测试选择器误点首页示例而不是类型按钮；仅依赖焦点事件的输入框展开不稳定。已限定类型选择器，并在触摸、输入与焦点事件中保证展开。第二轮在三版 Android 各 61 项设备测试全部通过。最终一轮增加真实键盘验收，同时修正非思考记录的空状态文案。
+本轮保留全部 62 项设备测试，在现有页面流程内补充：所有界面图标来自 Semi、导航选中为官方面性图标、SVG 没有额外描边、卡片装饰图标减少。另由构建检查确认 31 个语义映射与已提交的官方 SVG 原件一致。
 
 ## 验证边界
 
@@ -67,6 +69,7 @@ cd1882fa42549768292f167885419583c60df808f653f819a25bafa9d75a8a28
 
 | 版本 | 验证 |
 | --- | --- |
+| [v0.4.0 验证文档](https://github.com/callmecc-wsm/aitodonote/blob/e743dc6c8a78f3002ce640db344295afd960b065/VALIDATION.md) | 8 项 JavaScript、10 项 JVM，三版 Android 各 62 项设备测试通过 |
 | [v0.3.0 验证文档](https://github.com/callmecc-wsm/aitodonote/blob/4279dc41203f3ce3a8ef2c13d26c562b79518c57/VALIDATION.md) | 8 项 JavaScript、10 项 JVM，API 26、29、35 各 59 项设备测试通过；旧通知截图限制保留在历史文档 |
 | [v0.2.0](https://github.com/callmecc-wsm/aitodonote/actions/runs/34857149768) | 8 项 JavaScript、10 项 JVM，三版 Android 各 48 项设备测试通过 |
 | [v0.1.0](https://github.com/callmecc-wsm/aitodonote/actions/runs/34119925870) | 5 项 JavaScript、8 项 JVM，API 29 共 7 项设备测试通过 |

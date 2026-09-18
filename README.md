@@ -4,22 +4,21 @@
 
 简约的 Android 个人测试应用。记录离线可用，无需注册；AI 使用你自己的模型 API，联网检索可选。
 
-## v0.4.0
+## v0.5.0
 
-- **记录页重做**：蓝白信息流，正文优先；底部随手输入，写作时展开分类和搜索开关。
-- **进展更好读**：原问题、摘要、正文和追问分层排版，可筛选「等我补充」。
-- **详情与编辑**：整页阅读与编辑，底部继续补充；保留各条草稿和长文阅读位置。
-- **设置分组**：模型、自动回顾、安静时段、联网搜索按需展开；通知和备份直接进入。
+采用 **Semi 官方图标 + 公开 Universe Design 主题基础值**。统一导航、搜索、发送、设置、桌面入口和通知图标；减少内容旁的重复装饰，去掉星星效果。底部导航以线性/面性区分状态，颜色、圆角与字号集中管理。
 
-保留离线记录、完整草稿、外部分享、通知继续聊、隔天继续研究、最多 3 轮、未读进展、安静时段和备份恢复。设计参考、取舍和规则见 [界面改版说明](DESIGN.md)。
+这是适配手机的应用界面，没有将 Web 组件库直接当作飞书原生移动端组件。资源来源和使用范围见 [设计说明](DESIGN.md)。
+
+保留离线记录、完整草稿、外部分享、通知继续聊、隔天继续研究、最多 3 轮、未读进展、安静时段和备份恢复。
 
 ## 下载与安装
 
-1. 登录 GitHub，下载 [NoteNote-Android-APK 测试包](https://github.com/callmecc-wsm/aitodonote/actions/runs/35331667957/artifacts/10541391217)（约 2.4 MB）。
-2. 解压得到 `NoteNote-0.4.0-test.apk` 和 `SHA256SUMS.txt`。
+1. 登录 GitHub，下载 [NoteNote-Android-APK 测试包](https://github.com/callmecc-wsm/aitodonote/actions/runs/35340759271/artifacts/10544946945)（约 2.4 MB）。
+2. 解压得到 `NoteNote-0.5.0-test.apk` 和 `SHA256SUMS.txt`。
 3. 在手机上打开 APK 安装。首次打开即可试用记录与本地提醒。
 
-[完整构建与三版安卓测试记录](https://github.com/callmecc-wsm/aitodonote/actions/runs/35331667957) · [验证详情](VALIDATION.md)
+[完整构建与三版安卓测试记录](https://github.com/callmecc-wsm/aitodonote/actions/runs/35340759271) · [验证详情](VALIDATION.md)
 
 附件保留至 2026-12-17。到期后可在 Actions 手动重新构建。
 
