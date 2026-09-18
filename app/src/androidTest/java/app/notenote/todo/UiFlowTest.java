@@ -160,4 +160,52 @@ public class UiFlowTest extends DeviceTestBase {
             assertEquals("true",js(w,"document.querySelector('.modal').scrollTop>200"));
         }
     }
+    @Test public void redesignedScreensKeepRecordsReadableAndNavigationFunctional() throws Exception {
+        note("周末想找个安静的地方，读完手边这本书。","note");
+        JSONObject action=store.save(new JSONObject().put("text","周六下午整理阳台，给绿植换盆").put("kind","action").put("due",System.currentTimeMillis()+86400000));
+        JSONObject thought=note("模型是怎么一步步学会回答问题的？想先弄懂训练过程。","think");
+        store.result(thought.getString("id"),thought.getInt("revision"),event("ask_user","你想先了解预训练，还是模型如何学会遵循指令？")
+            .put("summary","可以先把训练理解成三个阶段")
+            .put("detail","预训练，让模型从大量文本里学习语言和知识。\n\n指令微调，让它学会按问题和任务来组织回答。\n\n后训练，再通过反馈改进回答的质量和取舍。每个阶段解决的问题不同，值得分开看。")
+            .put("research","测试样例 · 未联网检索"),"");
+        try(ActivityScenario<MainActivity> scenario=ActivityScenario.launch(MainActivity.class)) {
+            WebView w=ready(scenario);
+            assertEquals("true",js(w,"document.querySelectorAll('.card').length===3&&!document.querySelector('.hero')"));
+            assertEquals("Capture and tabs must fit without overlap","true",js(w,"(function(){var d=document.querySelector('.capture-dock').getBoundingClientRect(),n=document.querySelector('.bottom-nav').getBoundingClientRect();return d.top>100&&d.bottom<=n.top+1&&n.bottom<=innerHeight+1&&document.documentElement.scrollWidth<=innerWidth;})()"));
+            DeviceScreenshots.capture(context,w,"06-inbox-with-records");
+            js(w,"document.querySelector('[data-act=search-open]').click();document.querySelector('#search').value='阳台';document.querySelector('#search').dispatchEvent(new Event('input',{bubbles:true}));true");
+            assertEquals("true",js(w,"document.querySelectorAll('.card').length===1&&document.querySelector('.card-title').textContent.includes('阳台')"));
+            DeviceScreenshots.capture(context,w,"12-search");
+            js(w,"document.querySelector('[data-act=search-close]').click();document.querySelector('[data-filter=think]').click();true");
+            assertEquals("true",js(w,"document.querySelectorAll('.card').length===1&&document.querySelector('.card-title').textContent.includes('模型')"));
+            js(w,"document.querySelector('[data-tab=progress]').click();true");
+            assertEquals("1",js(w,"document.querySelectorAll('.progress-card').length"));
+            DeviceScreenshots.capture(context,w,"07-progress");
+            js(w,"document.querySelector('.progress-card footer button').click();true");
+            assertEquals("true",js(w,"document.querySelector('.detail-text').textContent.includes('模型')&&document.querySelectorAll('.event').length===1"));
+            js(w,"document.querySelector('.modal').scrollTop=0;true");
+            DeviceScreenshots.capture(context,w,"08-record-detail");
+            js(w,"document.querySelector('[data-act=close]').click();document.querySelector('[data-tab=settings]').click();true");
+            assertEquals("true",js(w,"document.querySelectorAll('.settings-group').length===5&&!document.querySelector('.settings-group[open]')"));
+            DeviceScreenshots.capture(context,w,"09-settings");
+            js(w,"document.querySelector('.settings-group summary').click();true");
+            assertEquals("true",js(w,"document.querySelector('input[name=model]').getBoundingClientRect().height>=44"));
+            DeviceScreenshots.capture(context,w,"10-model-settings");
+            js(w,"document.querySelector('[data-tab=inbox]').click();showDetail('"+action.getString("id")+"');true");
+            assertEquals("true",js(w,"!!document.querySelector('.due-info')&&!document.querySelector('#reply-form')"));
+            DeviceScreenshots.capture(context,w,"11-action-detail");
+        }
+    }
+    @Test public void captureExpansionKeepsDraftAndAllowsOneHandCollapse() throws Exception {
+        try(ActivityScenario<MainActivity> scenario=ActivityScenario.launch(MainActivity.class)) {
+            WebView w=ready(scenario);
+            assertEquals("false",js(w,"document.querySelector('.capture-dock').classList.contains('expanded')"));
+            js(w,"document.querySelector('#capture-text').focus();document.querySelector('#capture-text').value='写到一半的想法';document.querySelector('#capture-text').dispatchEvent(new Event('input',{bubbles:true}));true");
+            assertEquals("true",js(w,"document.querySelector('.capture-dock').classList.contains('expanded')"));
+            js(w,"document.querySelector('[data-act=collapse-compose]').click();true");
+            assertEquals("false",js(w,"document.querySelector('.capture-dock').classList.contains('expanded')"));
+            assertEquals("写到一半的想法",new Drafts(context).read().getString("text"));
+        }
+    }
+
 }

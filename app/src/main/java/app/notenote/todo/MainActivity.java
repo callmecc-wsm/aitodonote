@@ -32,7 +32,7 @@ public final class MainActivity extends Activity {
 
     @Override public void onCreate(Bundle saved) {
         super.onCreate(saved); store=Store.get(this); config=new Config(this); drafts=new Drafts(this);
-        web=new WebView(this); web.setBackgroundColor(Color.rgb(247,248,244));
+        web=new WebView(this); web.setBackgroundColor(Color.rgb(245,246,248));
         // Legacy WebView's GPU glyph rasterizer can abort the entire app process.
         // Use Android's software View layer for Chromium 74 and older; current
         // WebViews keep their default rendering. This app draws text and forms.

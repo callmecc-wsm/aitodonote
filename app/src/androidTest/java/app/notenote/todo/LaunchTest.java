@@ -23,8 +23,8 @@ public class LaunchTest extends DeviceTestBase {
   Activity a=i.startActivitySync(intent);assertNotNull(a);
   AtomicReference<WebView> ref=new AtomicReference<>();i.runOnMainSync(()->ref.set(find(a.getWindow().getDecorView())));WebView w=ref.get();assertNotNull(w);
   String body="";long deadline=SystemClock.elapsedRealtime()+20000;
-  while(SystemClock.elapsedRealtime()<deadline){body=js(i,w,"document.body.innerText");if(body.contains("先记下来"))break;SystemClock.sleep(250);}
-  assertTrue("Home screen did not render: "+body,body.contains("先记下来"));
+  while(SystemClock.elapsedRealtime()<deadline){body=js(i,w,"document.body.innerText");if(body.contains("从一句话开始"))break;SystemClock.sleep(250);}
+  assertTrue("Home screen did not render: "+body,body.contains("从一句话开始"));
   assertFalse("Android must not use browser preview adapter",body.contains("界面预览"));
   DeviceScreenshots.capture(i.getTargetContext(),w,"00-home");
   js(i,w,"document.querySelector('#capture-text').value='界面测试：为什么模型能够推理';document.querySelector('#capture-form').dispatchEvent(new Event('submit',{bubbles:true,cancelable:true}));true");

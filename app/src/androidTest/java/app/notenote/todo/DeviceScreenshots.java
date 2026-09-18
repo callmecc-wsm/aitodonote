@@ -23,6 +23,9 @@ final class DeviceScreenshots {
         }));
         assertTrue("WebView must finish painting before screenshot",painted.await(20,TimeUnit.SECONDS));
         instrumentation.waitForIdleSync();
+        // A WebView visual callback precedes SurfaceFlinger presentation. Allow
+        // the committed page to reach the native window before sampling pixels.
+        android.os.SystemClock.sleep(600);
         // The Android starting window may cover an already-painted WebView.
         // Reject blank frames until it is gone; persistent blank screens still fail.
         long deadline=android.os.SystemClock.elapsedRealtime()+5000;
