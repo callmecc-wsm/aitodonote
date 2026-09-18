@@ -36,3 +36,7 @@ node tests/browser.mjs
 生产入口为 `app/page.tsx`，账号校验位于 `app/api/note/route.ts`；`public/note/` 保留应用交互，`lib/` 是数据和 AI 推进规则。发布由 Sites 处理 `.openai/hosting.json` 的 DB 绑定和 Drizzle 迁移。`NOTE_KEY` 必须通过站点环境变量设置为 32 字节随机值的 Base64，并标记为 secret；不可随意轮换，否则已有密钥需要重填。
 
 图标来自 `@douyinfe/semi-icons@2.103.0`，授权见 `public/note/LICENSE-SEMI.txt`。原始 SVG 和生成器见主仓库 `design-system/` 和 `ci/generate_icons.py`。
+
+## 验证记录
+
+2026-09-18：16 项服务测试通过；Chromium、WebKit 在 390 px 下完成记录、草稿恢复、编辑、模型配置、AI 进展与回复、搜索、完成、备份导入导出流程，并检查 320 px 无横向溢出及桌面布局。证据见 [GitHub Actions](https://github.com/callmecc-wsm/aitodonote/actions/runs/35358409563)。模型与身份为测试夹具；生产登录、真实模型和 iOS 真机仍需实际使用验收。

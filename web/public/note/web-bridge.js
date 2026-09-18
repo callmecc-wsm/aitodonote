@@ -4,7 +4,9 @@ window.WebBridge=(()=>{
  const draftKey='notenote-h5-drafts-v1';let local={draft:{text:'',kind:'auto',due:'',searchAllowed:true},workspace:{entries:{},resume:{},shares:[]}};
  try{const saved=JSON.parse(localStorage.getItem(draftKey)||'null');if(saved?.workspace&&saved?.draft)local=saved}catch{}
  const persist=()=>{try{localStorage.setItem(draftKey,JSON.stringify(local))}catch{throw Error('本机草稿存储失败，请勿关闭页面，先复制文字')}};
+ let focus=new URLSearchParams(location.hash.slice(1));
  const api={onChange:null,call,init};
+ window.addEventListener('hashchange',()=>{focus=new URLSearchParams(location.hash.slice(1));changed()});
  const changed=()=>api.onChange?.();
  async function request(method,params={}){
  let response;try{response=await fetch('/api/note',{method:'POST',headers:{'Content-Type':'application/json','X-NoteNote':'1'},body:JSON.stringify({method,params}),cache:'no-store'})}catch{throw Error('网络连接中断，草稿已保留，请联网后重试')}
@@ -13,7 +15,7 @@ window.WebBridge=(()=>{
  if(!response.ok)throw Error(r.error||'操作未完成');if(r.snapshot){cache=r.snapshot;loaded=true;changed()}return r;
  }
  function call(method,p={}){
- if(method==='snapshot')return {...cache,native:true,busy:busy||cache.busy,testing,notifications:'Notification' in window&&Notification.permission==='granted',draft:local.draft,workspace:local.workspace};
+ if(method==='snapshot'){const focusId=focus.get('note'),focusReply=focus.get('reply')==='1';focus=new URLSearchParams();return {...cache,focusId,focusReply,native:true,busy:busy||cache.busy,testing,notifications:'Notification' in window&&Notification.permission==='granted',draft:local.draft,workspace:local.workspace};}
  if(method==='draft'){local.draft={...p};persist();return {}}
  if(method==='taskDraft'){local.workspace.entries[p.scope+':'+p.id]={...p};local.workspace.resume={scope:p.scope,id:p.id};persist();return {}}
  if(method==='discardDraft'){delete local.workspace.entries[p.scope+':'+p.id];local.workspace.resume={};persist();return {}}
@@ -42,9 +44,9 @@ window.WebBridge=(()=>{
  function importBackup(){const file=document.createElement('input');file.type='file';file.accept='.json,application/json';file.onchange=async()=>{const f=file.files?.[0];if(!f)return;try{if(f.size>9000000)throw Error('备份文件超过 9 MB');const backup=JSON.parse(await f.text());const r=await request('import',{backup});window.refresh?.(true);window.toast?.('已导入 '+r.count+' 条记录，已有记录保持不变')}catch(e){window.toast?.(e instanceof SyntaxError?'备份不是有效的 JSON 文件':e.message)}};file.click();return {}}
  async function notifications(){if(!('Notification'in window))throw Error('此浏览器不支持通知；iPhone 可尝试先添加到主屏幕，页面内仍会显示提醒');const p=await Notification.requestPermission();changed();if(p!=='granted')throw Error('通知未获允许，请在浏览器或系统设置中开启');window.toast?.('通知已开启；需保持页面运行');return {}}
  const sent=new Set();
- async function notify(id,title,body){if(sent.has(id))return;sent.add(id);window.toast?.(body);if('Notification'in window&&Notification.permission==='granted'){try{const reg=await navigator.serviceWorker?.getRegistration();if(reg)await reg.showNotification(title,{body,tag:id,icon:'/favicon.svg',data:{url:'/note/index.html'}});else new Notification(title,{body,tag:id})}catch{}}}
+ async function notify(id,title,body,noteId){if(sent.has(id))return;sent.add(id);window.toast?.(body);if('Notification'in window&&Notification.permission==='granted'){try{const reg=await navigator.serviceWorker?.getRegistration();if(reg)await reg.showNotification(title,{body,tag:id,icon:'/favicon.svg',data:{url:'/note/index.html#note='+encodeURIComponent(noteId)},actions:title.includes('进展')?[{action:'reply',title:'接着聊'}]:[]});else{const n=new Notification(title,{body,tag:id});n.onclick=()=>{location.hash='note='+encodeURIComponent(noteId);window.focus()}}}catch{}}}
  function quietNow(){const c=cache.config,h=new Date().getHours();return c.quietFrom===c.quietTo?false:c.quietFrom<c.quietTo?h>=c.quietFrom&&h<c.quietTo:h>=c.quietFrom||h<c.quietTo}
- async function deliverNotifications(){if(quietNow())return;for(const t of cache.tasks){if(t.done||t.snooze>Date.now())continue;if(t.kind==='action'&&t.due<=Date.now()&&Date.now()-(t.lastReminder||0)>86400000){await notify(t.id+'-'+new Date().toDateString(),'Note Note · 到时间了',t.text);await mutate('reminded',{id:t.id})}if(t.unread&&t.pendingNotification)await notify(t.pendingNotification,'Note Note · 有新进展',t.events.filter(e=>e.role==='assistant').at(-1)?.summary||'打开记录查看')}}
+ async function deliverNotifications(){if(quietNow())return;for(const t of cache.tasks){if(t.done||t.snooze>Date.now())continue;if(t.kind==='action'&&t.due<=Date.now()&&Date.now()-(t.lastReminder||0)>86400000){await notify(t.id+'-'+new Date().toDateString(),'Note Note · 到时间了',t.text,t.id);await mutate('reminded',{id:t.id})}if(t.unread&&t.pendingNotification)await notify(t.pendingNotification,'Note Note · 有新进展',t.events.filter(e=>e.role==='assistant').at(-1)?.summary||'打开记录查看',t.id)}}
  let ticking=false;
  async function tick(){if(ticking||document.hidden||!navigator.onLine||busy||testing)return;ticking=true;try{await request('snapshot');await deliverNotifications();const c=cache.config;if(c.enabled&&c.ready&&!c.blocked&&!cache.busy&&!quietNow()&&Date.now()-(c.lastRun||0)>=c.interval*3600000)await mutate('review',{automatic:true,hour:new Date().getHours()})}catch(e){if(loaded)window.toast?.(e.message)}finally{ticking=false}}
  async function init(){
