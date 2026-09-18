@@ -1,0 +1,1 @@
+{"name":"Note Note and ToDo","short_name":"Note Note","start_url":"/note/index.html","display":"standalone","background_color":"#ffffff","theme_color":"#ffffff","icons":[{"src":"/favicon.svg","sizes":"any","type":"image/svg+xml","purpose":"any"}],"share_target":{"action":"/note/index.html","method":"GET","params":{"title":"title","text":"text","url":"url"}}}

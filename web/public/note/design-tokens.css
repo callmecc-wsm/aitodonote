@@ -1,0 +1,21 @@
+/* Palette and radius values from @semi-bot/semi-theme-universedesign 1.0.13 (MIT).
+   Mobile typography and touch sizes are Note Note adaptations, not Semi components. */
+:root {
+  --semi-blue-0: 240,244,255;
+  --semi-blue-5: 51,112,255;
+  --semi-blue-6: 36,91,219;
+  --semi-neutral-0: 245,246,247;
+  --semi-neutral-1: 242,243,245;
+  --semi-neutral-5: 143,149,158;
+  --semi-neutral-6: 100,106,115;
+  --semi-neutral-9: 31,35,41;
+  --semi-color-primary: rgb(var(--semi-blue-5));
+  --semi-color-primary-active: rgb(var(--semi-blue-6));
+  --semi-color-primary-light-default: rgb(var(--semi-blue-0));
+  --semi-color-text-0: rgb(var(--semi-neutral-9));
+  --semi-color-text-2: rgb(var(--semi-neutral-6));
+  --semi-color-border: rgb(var(--semi-neutral-1));
+  --semi-border-radius-small: 4px;
+  --semi-border-radius-medium: 6px;
+  --semi-border-radius-large: 8px;
+}
