@@ -45,7 +45,7 @@ public class UiFlowTest extends DeviceTestBase {
     @Test public void captureDraftSurvivesActivityRecreationAndClearsAfterSave() throws Exception {
         try(ActivityScenario<MainActivity> scenario=ActivityScenario.launch(MainActivity.class)) {
             WebView w=ready(scenario);
-            js(w,"document.querySelector('#capture-text').value='尚未保存的问题';document.querySelector('#capture-text').dispatchEvent(new Event('input',{bubbles:true}));document.querySelector('[data-kind=think]').click();document.querySelector('#capture-search').checked=false;document.querySelector('#capture-search').dispatchEvent(new Event('input',{bubbles:true}));true");
+            js(w,"document.querySelector('#capture-text').value='尚未保存的问题';document.querySelector('#capture-text').dispatchEvent(new Event('input',{bubbles:true}));document.querySelector('#capture-form [data-kind=think]').click();document.querySelector('#capture-search').checked=false;document.querySelector('#capture-search').dispatchEvent(new Event('input',{bubbles:true}));true");
             scenario.recreate(); w=ready(scenario);
             assertTrue(js(w,"document.querySelector('#capture-text').value").contains("尚未保存的问题"));
             assertEquals("false",js(w,"document.querySelector('#capture-search').checked"));
@@ -200,7 +200,7 @@ public class UiFlowTest extends DeviceTestBase {
         try(ActivityScenario<MainActivity> scenario=ActivityScenario.launch(MainActivity.class)) {
             WebView w=ready(scenario);
             assertEquals("false",js(w,"document.querySelector('.capture-dock').classList.contains('expanded')"));
-            js(w,"document.querySelector('#capture-text').focus();document.querySelector('#capture-text').value='写到一半的想法';document.querySelector('#capture-text').dispatchEvent(new Event('input',{bubbles:true}));true");
+            js(w,"document.querySelector('#capture-text').click();document.querySelector('#capture-text').focus();document.querySelector('#capture-text').value='写到一半的想法';document.querySelector('#capture-text').dispatchEvent(new Event('input',{bubbles:true}));true");
             assertEquals("true",js(w,"document.querySelector('.capture-dock').classList.contains('expanded')"));
             js(w,"document.querySelector('[data-act=collapse-compose]').click();true");
             assertEquals("false",js(w,"document.querySelector('.capture-dock').classList.contains('expanded')"));
