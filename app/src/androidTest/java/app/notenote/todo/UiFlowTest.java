@@ -172,6 +172,9 @@ public class UiFlowTest extends DeviceTestBase {
             WebView w=ready(scenario);
             assertEquals("true",js(w,"document.querySelectorAll('.card').length===3&&!document.querySelector('.hero')"));
             assertEquals("Capture and tabs must fit without overlap","true",js(w,"(function(){var d=document.querySelector('.capture-dock').getBoundingClientRect(),n=document.querySelector('.bottom-nav').getBoundingClientRect();return d.top>100&&d.bottom<=n.top+1&&n.bottom<=innerHeight+1&&document.documentElement.scrollWidth<=innerWidth;})()"));
+            assertEquals("true",js(w,"Array.from(document.querySelectorAll('svg')).every(function(x){return x.classList.contains('semi-icon')&&x.dataset.icon&&getComputedStyle(x).stroke==='none';})"));
+            assertEquals("\"book\"",js(w,"document.querySelector('.nav-item.selected svg').dataset.icon"));
+            assertEquals("0",js(w,"document.querySelectorAll('.card-top svg,.new-summary svg:first-child:not(:last-child)').length"));
             DeviceScreenshots.capture(context,w,"06-inbox-with-records");
             js(w,"document.querySelector('[data-act=search-open]').click();document.querySelector('#search').value='阳台';document.querySelector('#search').dispatchEvent(new Event('input',{bubbles:true}));true");
             assertEquals("true",js(w,"document.querySelectorAll('.card').length===1&&document.querySelector('.card-title').textContent.includes('阳台')"));

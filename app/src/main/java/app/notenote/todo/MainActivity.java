@@ -32,7 +32,7 @@ public final class MainActivity extends Activity {
 
     @Override public void onCreate(Bundle saved) {
         super.onCreate(saved); store=Store.get(this); config=new Config(this); drafts=new Drafts(this);
-        web=new WebView(this); web.setBackgroundColor(Color.rgb(245,246,248));
+        web=new WebView(this); web.setBackgroundColor(Color.rgb(245,246,247));
         // Legacy WebView's GPU glyph rasterizer can abort the entire app process.
         // Use Android's software View layer for Chromium 74 and older; current
         // WebViews keep their default rendering. This app draws text and forms.
@@ -55,7 +55,7 @@ public final class MainActivity extends Activity {
                 if(!"https".equals(u.getScheme()) || !"app.notenote.local".equals(u.getHost())) return blocked();
                 String path=u.getPath();
                 if(path==null || path.equals("/")) path="/index.html";
-                if(!path.matches("/(index\\.html|app\\.js|app\\.css|core\\.js)")) return blocked();
+                if(!path.matches("/(index\\.html|app\\.js|app\\.css|core\\.js|icons\\.js|design-tokens\\.css)")) return blocked();
                 try {
                     String mime=path.endsWith(".js")?"application/javascript":path.endsWith(".css")?"text/css":"text/html";
                     return new WebResourceResponse(mime,"UTF-8",getAssets().open(path.substring(1)));
